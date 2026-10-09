@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isOwner(userId) { return signedIn() && request.auth.uid == userId; }
+
+    // Public profiles readable; only owner writes
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if isOwner(userId);
+
+      match /library/{animeId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId)
+          && request.resource.data.status in ['watching','completed','plan_to_watch','paused','dropped'];
+      }
+      match /episodeLogs/{logId} {
+        // private logs: only owner can read; public logs readable by anyone
+        allow read: if isOwner(userId)
+          || (resource.data.isPublic == true);
+        allow write: if isOwner(userId);
+      }
+      match /lists/{listId} {
+        allow read: if isOwner(userId)
+          || (resource.data.isPublic == true);
+        allow write: if isOwner(userId);
+      }
+      match /following/{targetId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      match /notifications/{notifId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Cached anime metadata: public read, functions-only write
+    match /anime/{animeId} {
+      allow read: if true;
+      allow write: if false;
+      match /episodes/{episodeId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
+    // Reviews: public read, owner write
+    match /animeReviews/{reviewId} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.userId == request.auth.uid;
+    }
+    match /episodeReviews/{reviewId} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Username registry for uniqueness
+    match /usernames/{username} {
+      allow read: if true;
+      allow write: if signedIn();
+    }
+  }
+}
