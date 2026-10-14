@@ -39,15 +39,6 @@ Email/password + Google sign-in and Firestore sync are live:
 - If env vars are ever removed, the app falls back to local mode:
   everything persists in `localStorage` under `kairoku:*` keys.
 
-## Structure
-
-- `src/app/` — routes: landing `/`, `/home`, `/discover`, `/search`,
-  `/anime/[slug]`, `/anime/[slug]/episode/[episode]`, `/diary`, `/library`,
-  `/watchlist`, `/lists`, `/u/[username]`, `/settings`, auth + `/onboarding`
-- `src/lib/anime-api.ts` — replaceable anime provider (Jikan today)
-- `src/lib/store.tsx` — local-first user data store + Firebase sync
-- `src/lib/firebase.ts`, `src/lib/mock-data.ts`, `src/types/`
-- `src/components/` — design system (`ui.tsx`), nav (`layout.tsx`), cards
 
 ## Checks
 
