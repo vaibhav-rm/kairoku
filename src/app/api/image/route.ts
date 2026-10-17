@@ -2,7 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Hosts we are willing to proxy artwork for. An open image proxy is an
 // abuse vector, so this stays a tight allowlist (Jikan/MAL CDN only).
-const ALLOWED = new Set(["cdn.myanimelist.net", "media.kitsu.io"]);
+const ALLOWED = new Set([
+  "cdn.myanimelist.net",
+  "media.kitsu.io",
+  "media.kitsu.app",
+]);
 
 const PLACEHOLDER = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
 <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">

@@ -5,7 +5,11 @@ import { useState, type ImgHTMLAttributes } from "react";
 /** Route fragile hotlinked artwork through our same-origin proxy. */
 export function px(src?: string | null): string {
   if (!src || !src.startsWith("http")) return "/api/image?url=";
-  if (src.includes("cdn.myanimelist.net") || src.includes("media.kitsu.io")) {
+  if (
+    src.includes("cdn.myanimelist.net") ||
+    src.includes("media.kitsu.io") ||
+    src.includes("media.kitsu.app")
+  ) {
     return `/api/image?url=${encodeURIComponent(src)}`;
   }
   return src;

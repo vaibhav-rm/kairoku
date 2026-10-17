@@ -7,6 +7,10 @@ import type { Anime } from "@/types";
 import { AnimeCard } from "@/components/anime-cards";
 import { RankCard } from "@/components/cinema";
 import { Skeleton } from "@/components/ui";
+import { useStore } from "@/lib/store";
+import { useMounted } from "@/hooks/use-mounted";
+import { buildRecommendations, type RecommendationBundle } from "@/lib/recommend";
+import { RecommendationRail } from "@/components/recommend";
 
 function Rail({ title, sub, items }: { title: string; sub: string; items: Anime[] }) {
   return (
@@ -26,10 +30,30 @@ function Rail({ title, sub, items }: { title: string; sub: string; items: Anime[
 
 export default function DiscoverPage() {
   const [data, setData] = useState<{ trending: Anime[]; airing: Anime[]; top: Anime[]; live: ProviderStatus } | null>(null);
+  const [bundle, setBundle] = useState<RecommendationBundle | null>(null);
+  const { user, ready, library, logs, reviews } = useStore();
+  const mounted = useMounted();
 
   useEffect(() => {
     getBrowseLists().then(setData).catch(() => setData({ trending: [], airing: [], top: [], live: "mock" }));
   }, []);
+
+  useEffect(() => {
+    if (!mounted || !ready || !user) return;
+    let alive = true;
+    buildRecommendations(
+      { library, logs, reviews, favoriteGenres: user.favoriteGenres },
+      10
+    )
+      .then((b) => {
+        if (alive) setBundle(b);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, ready, user, library.length, logs.length, reviews.length]);
 
   if (!data) {
     return (
@@ -64,6 +88,14 @@ export default function DiscoverPage() {
           </span>
         </div>
       </header>
+
+      {bundle && bundle.forYou.length > 0 && (
+        <RecommendationRail
+          title="Recommended for you"
+          subtitle="あなたへ · Based on your taste"
+          items={bundle.forYou.slice(0, 12)}
+        />
+      )}
 
       {/* TOP 10 — ranked rail */}
       <section>

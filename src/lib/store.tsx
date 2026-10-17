@@ -36,14 +36,23 @@ interface Store {
   setProgress: (animeId: number, ep: number) => void;
   setAnimeRating: (animeId: number, rating: number) => void;
   removeFromLibrary: (animeId: number) => void;
+  /** Explicitly-marked watched episodes, keyed by anime id. */
+  watched: Record<string, number[]>;
+  isWatched: (animeId: number, episode: number) => boolean;
+  toggleWatched: (anime: Anime, episode: number, total?: number | null) => void;
   logs: EpisodeLog[];
   addLog: (log: Omit<EpisodeLog, "id" | "createdAt">) => EpisodeLog;
   reviews: AnimeReview[];
   addReview: (r: Omit<AnimeReview, "id" | "createdAt" | "likes">) => AnimeReview;
   toggleLikeReview: (id: string) => void;
   lists: CustomList[];
-  saveList: (l: Omit<CustomList, "id" | "createdAt"> & { id?: string }) => void;
+  saveList: (
+    l: Omit<CustomList, "id" | "createdAt"> & { id?: string }
+  ) => CustomList;
   deleteList: (id: string) => void;
+  addToList: (listId: string, anime: Anime) => void;
+  removeFromList: (listId: string, animeId: number) => void;
+  hasInList: (listId: string, animeId: number) => boolean;
   notifications: KNotification[];
   markAllRead: () => void;
   toast: string | null;
@@ -96,6 +105,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [ready, setReady] = useState(false);
   const [library, setLibrary] = useState<LibraryEntry[]>([]);
+  const [watched, setWatched] = useState<Record<string, number[]>>({});
   const [logs, setLogs] = useState<EpisodeLog[]>([]);
   const [reviews, setReviews] = useState<AnimeReview[]>([]);
   const [lists, setLists] = useState<CustomList[]>([]);
@@ -108,6 +118,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setUser(load<AppUser | null>("kairoku:user", null));
     setLibrary(load("kairoku:library", []));
+    setWatched(load<Record<string, number[]>>("kairoku:watched", {}));
     setLogs(load("kairoku:logs", []));
     setReviews(load("kairoku:reviews", []));
     setLists(load("kairoku:lists", []));
@@ -143,6 +154,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => save("kairoku:library", library), [library]);
+  useEffect(() => save("kairoku:watched", watched), [watched]);
   useEffect(() => save("kairoku:logs", logs), [logs]);
   useEffect(() => save("kairoku:reviews", reviews), [reviews]);
   useEffect(() => save("kairoku:lists", lists), [lists]);
@@ -318,9 +330,62 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const removeFromLibrary = (animeId: number) =>
     setLibrary((prev) => prev.filter((e) => e.animeId !== animeId));
 
+  const isWatched = (animeId: number, episode: number): boolean => {
+    if ((watched[String(animeId)] || []).includes(episode)) return true;
+    if (logs.some((l) => l.animeId === animeId && l.episodeNumber === episode))
+      return true;
+    const entry = library.find((e) => e.animeId === animeId);
+    return !!entry && entry.currentEpisode >= episode;
+  };
+
+  const toggleWatched: Store["toggleWatched"] = (anime, episode, total) => {
+    const key = String(anime.malId);
+    const already = (watched[key] || []).includes(episode);
+    setWatched((prev) => {
+      const list = prev[key] || [];
+      const next = already
+        ? list.filter((x) => x !== episode)
+        : [...list, episode].sort((a, b) => a - b);
+      return { ...prev, [key]: next };
+    });
+    // Keep library progress coherent with what's been ticked off.
+    if (!already) {
+      const entry = library.find((e) => e.animeId === anime.malId);
+      const reachedEnd = total != null && episode >= total;
+      if (!entry) {
+        upsertLibrary(anime, {
+          status: reachedEnd ? "completed" : "watching",
+          currentEpisode: episode,
+          completedAt: reachedEnd ? new Date().toISOString() : undefined,
+        });
+      } else if (episode > entry.currentEpisode || (reachedEnd && entry.status !== "completed")) {
+        setLibrary((prev) =>
+          prev.map((e) =>
+            e.animeId === anime.malId
+              ? {
+                  ...e,
+                  currentEpisode: Math.max(e.currentEpisode, episode),
+                  status: reachedEnd ? "completed" : e.status,
+                  completedAt: reachedEnd
+                    ? new Date().toISOString()
+                    : e.completedAt,
+                  updatedAt: new Date().toISOString(),
+                }
+              : e
+          )
+        );
+      }
+    }
+  };
+
   const addLog: Store["addLog"] = (log) => {
     const entry: EpisodeLog = { ...log, id: uid(), createdAt: new Date().toISOString() };
     setLogs((prev) => [entry, ...prev]);
+    setWatched((prev) => {
+      const list = prev[String(log.animeId)] || [];
+      if (list.includes(log.episodeNumber)) return prev;
+      return { ...prev, [String(log.animeId)]: [...list, log.episodeNumber].sort((a, b) => a - b) };
+    });
     setLibrary((prev) => prev.map((e) => e.animeId === log.animeId ? {
       ...e, currentEpisode: Math.max(e.currentEpisode, log.episodeNumber), updatedAt: new Date().toISOString(),
     } : e));
@@ -339,11 +404,61 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setReviews((prev) => prev.map((r) => r.id === id ? { ...r, liked: !r.liked, likes: (r.likes || 0) + (r.liked ? -1 : 1) } : r));
 
   const saveList: Store["saveList"] = (l) => {
-    if (l.id) setLists((prev) => prev.map((x) => x.id === l.id ? { ...x, ...l } as CustomList : x));
-    else setLists((prev) => [{ ...l, id: uid(), createdAt: new Date().toISOString() }, ...prev]);
-    showToast("List saved.");
+    const items = l.items ?? [];
+    const animeIds = l.animeIds?.length ? l.animeIds : items.map((a) => a.malId);
+    const existing = l.id ? lists.find((x) => x.id === l.id) : undefined;
+    const saved: CustomList = existing
+      ? { ...existing, ...l, items, animeIds }
+      : {
+          id: l.id || uid(),
+          name: l.name,
+          description: l.description ?? "",
+          isPublic: l.isPublic ?? true,
+          items,
+          animeIds,
+          createdAt: new Date().toISOString(),
+        };
+    setLists((prev) =>
+      existing
+        ? prev.map((x) => (x.id === saved.id ? saved : x))
+        : [saved, ...prev]
+    );
+    showToast(existing ? "List updated." : "List created.");
+    return saved;
   };
-  const deleteList = (id: string) => setLists((prev) => prev.filter((x) => x.id !== id));
+
+  const deleteList = (id: string) => {
+    setLists((prev) => prev.filter((x) => x.id !== id));
+    showToast("List deleted.");
+  };
+
+  const addToList: Store["addToList"] = (listId, anime) => {
+    let name = "";
+    setLists((prev) =>
+      prev.map((l) => {
+        if (l.id !== listId) return l;
+        name = l.name;
+        if (l.items?.some((i) => i.malId === anime.malId)) return l;
+        const items = [...(l.items || []), anime];
+        return { ...l, items, animeIds: items.map((i) => i.malId) };
+      })
+    );
+    showToast(name ? `Added to ${name}.` : "Added to list.");
+  };
+
+  const removeFromList: Store["removeFromList"] = (listId, animeId) => {
+    setLists((prev) =>
+      prev.map((l) => {
+        if (l.id !== listId) return l;
+        const items = (l.items || []).filter((i) => i.malId !== animeId);
+        return { ...l, items, animeIds: items.map((i) => i.malId) };
+      })
+    );
+    showToast("Removed from list.");
+  };
+
+  const hasInList: Store["hasInList"] = (listId, animeId) =>
+    !!lists.find((l) => l.id === listId)?.items?.some((i) => i.malId === animeId);
   const markAllRead = () => setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
 
   const value = useMemo<Store>(
@@ -351,11 +466,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       user, ready, firebaseMode: isFirebaseConfigured,
       signIn, signUp, signInGoogle, signOut, updateProfile,
       library, upsertLibrary, setStatus, setProgress, setAnimeRating, removeFromLibrary,
+      watched, isWatched, toggleWatched,
       logs, addLog, reviews, addReview, toggleLikeReview,
-      lists, saveList, deleteList, notifications, markAllRead, toast, showToast,
+      lists, saveList, deleteList, addToList, removeFromList, hasInList,
+      notifications, markAllRead, toast, showToast,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, ready, library, logs, reviews, lists, notifications, toast]
+    [user, ready, library, watched, logs, reviews, lists, notifications, toast]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

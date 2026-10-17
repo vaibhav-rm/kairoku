@@ -9,7 +9,7 @@ import { useMounted } from "@/hooks/use-mounted";
 import { Button, EmptyState, Input, Textarea } from "@/components/ui";
 
 export default function ListsPage() {
-  const { user, ready, lists, saveList, deleteList, library } = useStore();
+  const { user, ready, lists, saveList, deleteList } = useStore();
   const mounted = useMounted();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -47,7 +47,7 @@ export default function ListsPage() {
               className="ml-auto"
               onClick={() => {
                 if (!name.trim()) return;
-                saveList({ name, description: desc, isPublic: pub, animeIds: library.slice(0, 3).map((e) => e.animeId) });
+                saveList({ name: name.trim(), description: desc, isPublic: pub, animeIds: [], items: [] });
                 setName(""); setDesc(""); setOpen(false);
               }}
             >

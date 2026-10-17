@@ -16,6 +16,8 @@ export interface Anime {
   coverImage: string;
   bannerImage?: string;
   genres: string[];
+  /** Themes + demographics (e.g. "Isekai", "Shounen"), when provided. */
+  themes?: string[];
   studios: string[];
   year?: number;
   type?: string;
@@ -104,7 +106,27 @@ export interface CustomList {
   description: string;
   isPublic: boolean;
   animeIds: number[];
+  /**
+   * Snapshot of the anime contained in this list. Kept alongside
+   * `animeIds` so a list keeps its titles even if they're later removed
+   * from the library (and so non-library titles can be listed at all).
+   */
+  items?: Anime[];
   createdAt: string;
+}
+
+/** A scored recommendation produced by the taste engine. */
+export interface Recommendation {
+  anime: Anime;
+  score: number;
+  reasons: string[];
+}
+
+/** "Because you liked X" rail. */
+export interface RecommendationRail {
+  anime: Anime;
+  reason: string;
+  items: Anime[];
 }
 
 export interface KNotification {
