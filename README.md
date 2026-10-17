@@ -35,8 +35,12 @@ Next.js 16 · React 19 · TypeScript · Tailwind v4 · Firebase · Jikan API.
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000
+cp .env.example .env.local   # fill in your Firebase web config
+npm run dev                  # http://localhost:3000
 ```
+
+New accounts (email or Google) pick a username during onboarding; that handle
+is reserved in the `usernames` registry and stored on the profile.
 
 ## Anime data
 

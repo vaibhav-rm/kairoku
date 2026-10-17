@@ -36,8 +36,8 @@ interface Store {
   ready: boolean;
   firebaseMode: boolean;
   signIn: (usernameOrEmail: string, password?: string) => Promise<void>;
-  signUp: (username: string, email: string, password: string) => Promise<void>;
-  signInGoogle: () => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  signInGoogle: () => Promise<boolean>;
   signOut: () => Promise<void>;
   updateProfile: (patch: Partial<AppUser>) => void;
   library: LibraryEntry[];
@@ -207,6 +207,23 @@ function mergeReviews(local: AnimeReview[], remote: AnimeReview[]): AnimeReview[
 const uid = () =>
   Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
+/**
+ * Best-effort username from an email/local-part, sanitized to the allowed
+ * charset. Never returns the old catch-all "traveler" — onboarding asks the
+ * user to confirm or change it.
+ */
+function deriveUsername(email: string | null | undefined): string {
+  const base = (email || "user")
+    .split("@")[0]
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 20);
+  return base.length >= 3
+    ? base
+    : `watcher_${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
 /** How long to wait between airing checks for new episodes. */
 const AIRING_SYNC_TTL = 1000 * 60 * 60 * 3;
 
@@ -222,6 +239,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [lists, setLists] = useState<CustomList[]>([]);
   const [notifications, setNotifications] = useState<KNotification[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
   // Refs used by the debounced Firestore sync (keep latest values without
   // re-subscribing the timers on every render).
@@ -253,7 +271,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               if (prev && prev.email === fb.email) return prev;
               const u: AppUser = {
                 id: fb.uid,
-                username: (fb.email || "user").split("@")[0].toLowerCase(),
+                username: deriveUsername(fb.email),
                 displayName: fb.displayName || (fb.email || "User").split("@")[0],
                 email: fb.email || "",
                 avatarUrl: fb.photoURL || undefined,
@@ -261,6 +279,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 timezone:
                   Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
                 createdAt: new Date().toISOString(),
+                onboarded: false,
               };
               save("kairoku:user", u);
               return u;
@@ -290,9 +309,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     epDataRef.current = { episodeData, watched };
   }, [episodeData, watched]);
 
-  // Firestore sync (best-effort, local-first)
+  // Firestore sync (best-effort, local-first). Wait for the initial pull so we
+  // never overwrite a chosen username with a device-local placeholder.
   useEffect(() => {
     if (!isFirebaseConfigured || !db || !user) return;
+    if (!hydrated) return;
     (async () => {
       try {
         const { doc, setDoc } = await import("firebase/firestore");
@@ -305,13 +326,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             avatarUrl: user.avatarUrl || null,
             bio: user.bio || "",
             timezone: user.timezone,
+            favoriteGenres: user.favoriteGenres ?? null,
+            onboarded: user.onboarded ?? false,
             updatedAt: new Date().toISOString(),
           },
           { merge: true }
         );
       } catch {}
     })();
-  }, [user]);
+  }, [user, hydrated]);
 
   // Library: write only entries whose updatedAt changed since the last pass.
   useEffect(() => {
@@ -353,13 +376,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     pullUserData(user.id)
       .then((data) => {
         if (!alive || !data) return;
+        // Adopt the profile only when the account was explicitly onboarded,
+        // so a device-local placeholder never clobbers a chosen username.
+        setUser((prev) => {
+          const p = data.profile;
+          if (!prev || !p?.onboarded) return prev;
+          return {
+            ...prev,
+            username: p.username || prev.username,
+            displayName: p.displayName || prev.displayName,
+            bio: p.bio || prev.bio,
+            avatarUrl: p.avatarUrl || prev.avatarUrl,
+            timezone: p.timezone || prev.timezone,
+            favoriteGenres: p.favoriteGenres ?? prev.favoriteGenres,
+            onboarded: true,
+          };
+        });
         setLibrary((prev) => mergeLibrary(prev, data.library));
         setEpisodeData((prev) => mergeEpisodeData(prev, data.episodes));
         setWatched((prev) => mergeWatched(prev, data.episodes));
         setLists((prev) => mergeLists(prev, data.lists));
         setReviews((prev) => mergeReviews(prev, data.reviews));
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (alive) setHydrated(true);
+      });
     return () => {
       alive = false;
     };
@@ -392,31 +434,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }, 1200);
   }, []);
 
-  const validateUsername = (u: string) => /^[a-z0-9_]{3,20}$/.test(u.toLowerCase());
-
-  const signUp: Store["signUp"] = async (username, email, password) => {
-    const clean = username.toLowerCase().trim();
-    if (!validateUsername(clean)) throw new Error("Username must be 3–20 chars: letters, numbers, underscore.");
+  const signUp: Store["signUp"] = async (email, password) => {
     if (password.length < 6) throw new Error("Password must be at least 6 characters.");
+    // A placeholder handle; onboarding asks the user to choose the real one.
+    const placeholder = deriveUsername(email);
     if (isFirebaseConfigured && auth) {
       const { createUserWithEmailAndPassword, updateProfile } = await import("firebase/auth");
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(cred.user, { displayName: clean });
-      const u: AppUser = {
-        id: cred.user.uid, username: clean, displayName: clean, email,
+      await updateProfile(cred.user, { displayName: placeholder });
+      setUser({
+        id: cred.user.uid, username: placeholder, displayName: placeholder, email,
         bio: "", timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
         createdAt: new Date().toISOString(),
-      };
-      setUser(u);
+        onboarded: false,
+      });
       return;
     }
-    const u: AppUser = {
-      id: uid(), username: clean, displayName: clean, email,
+    setUser({
+      id: uid(), username: placeholder, displayName: placeholder, email,
       bio: "Collecting stories, one episode at a time.",
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
       createdAt: new Date().toISOString(),
-    };
-    setUser(u);
+      onboarded: false,
+    });
     showToast("Welcome to Kairoku.");
   };
 
@@ -431,31 +471,51 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setUser(existing);
       return;
     }
-    const clean = usernameOrEmail.split("@")[0].toLowerCase() || "traveler";
+    const clean = deriveUsername(usernameOrEmail);
     setUser({
       id: uid(), username: clean, displayName: clean, email: usernameOrEmail,
       bio: "", timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
       createdAt: new Date().toISOString(),
+      onboarded: false,
     });
   };
 
   const signInGoogle: Store["signInGoogle"] = async () => {
     if (isFirebaseConfigured && auth) {
-      const { GoogleAuthProvider, signInWithPopup } = await import("firebase/auth");
-      await signInWithPopup(auth, new GoogleAuthProvider());
-      return;
+      const { GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } =
+        await import("firebase/auth");
+      const cred = await signInWithPopup(auth, new GoogleAuthProvider());
+      const isNew = getAdditionalUserInfo(cred)?.isNewUser ?? false;
+      if (isNew) {
+        const base = deriveUsername(cred.user.email);
+        setUser({
+          id: cred.user.uid,
+          username: base,
+          displayName: cred.user.displayName || base,
+          email: cred.user.email || "",
+          avatarUrl: cred.user.photoURL || undefined,
+          bio: "",
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+          createdAt: new Date().toISOString(),
+          onboarded: false,
+        });
+      }
+      return isNew;
     }
     const existing = load<AppUser | null>("kairoku:user", null);
     if (existing) {
       setUser(existing);
-      return;
+      return false;
     }
+    const base = deriveUsername(`guest_${Math.floor(1000 + Math.random() * 9000)}`);
     setUser({
-      id: uid(), username: "traveler", displayName: "Traveler",
-      email: "traveler@kairoku.app", bio: "",
+      id: uid(), username: base, displayName: "Watcher",
+      email: `${base}@kairoku.app`, bio: "",
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
       createdAt: new Date().toISOString(),
+      onboarded: false,
     });
+    return true;
   };
 
   const signOut = async () => {

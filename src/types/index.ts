@@ -57,6 +57,8 @@ export interface AppUser {
   favoriteAnime?: string;
   favoriteGenres?: string[];
   createdAt: string;
+  /** True once the user has completed onboarding and chosen a username. */
+  onboarded?: boolean;
 }
 
 export interface LibraryEntry {

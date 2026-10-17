@@ -1,5 +1,5 @@
 import { db, isFirebaseConfigured } from "@/lib/firebase";
-import type { AnimeReview, CustomList, EpisodeEntry, LibraryEntry } from "@/types";
+import type { AnimeReview, AppUser, CustomList, EpisodeEntry, LibraryEntry } from "@/types";
 
 /**
  * Best-effort Firestore sync for a signed-in user's own data.
@@ -107,6 +107,7 @@ export async function pushReview(uid: string, review: AnimeReview): Promise<void
 }
 
 export interface PulledData {
+  profile: AppUser | null;
   library: LibraryEntry[];
   episodes: EpisodeDoc[];
   lists: CustomList[];
@@ -119,7 +120,8 @@ export async function pullUserData(uid: string): Promise<PulledData | null> {
   if (!conn) return null;
   const { fs, database } = conn;
   try {
-    const [library, episodes, lists, reviews] = await Promise.all([
+    const [profile, library, episodes, lists, reviews] = await Promise.all([
+      fs.getDoc(fs.doc(database, "users", uid)),
       fs.getDocs(fs.collection(database, "users", uid, "library")),
       fs.getDocs(fs.collection(database, "users", uid, "episodes")),
       fs.getDocs(fs.collection(database, "users", uid, "lists")),
@@ -128,6 +130,7 @@ export async function pullUserData(uid: string): Promise<PulledData | null> {
       ),
     ]);
     return {
+      profile: profile.exists() ? (profile.data() as AppUser) : null,
       library: library.docs
         .map((d) => d.data() as LibraryEntry)
         .filter((e) => e && typeof e.animeId === "number"),
@@ -138,4 +141,38 @@ export async function pullUserData(uid: string): Promise<PulledData | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Is `username` already claimed by a different account?
+ * Fails open (returns false) when Firebase is off or unreachable, so username
+ * choice never blocks in local mode.
+ */
+export async function isUsernameTaken(username: string, uid: string): Promise<boolean> {
+  const conn = await connect();
+  if (!conn) return false;
+  const { fs, database } = conn;
+  try {
+    const snap = await fs.getDoc(fs.doc(database, "usernames", username.toLowerCase()));
+    if (!snap.exists()) return false;
+    const data = snap.data() as { uid?: string };
+    return Boolean(data.uid) && data.uid !== uid;
+  } catch {
+    return false;
+  }
+}
+
+/** Reserve a username in the public registry (best-effort). */
+export async function claimUsername(username: string, uid: string): Promise<void> {
+  const conn = await connect();
+  if (!conn) return;
+  const { fs, database } = conn;
+  const clean = username.toLowerCase();
+  try {
+    await fs.setDoc(
+      fs.doc(database, "usernames", clean),
+      { uid, username: clean, updatedAt: new Date().toISOString() },
+      { merge: true }
+    );
+  } catch {}
 }

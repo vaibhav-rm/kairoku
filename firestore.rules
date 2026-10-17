@@ -55,10 +55,12 @@ service cloud.firestore {
       allow update, delete: if signedIn() && resource.data.userId == request.auth.uid;
     }
 
-    // Username registry for uniqueness
+    // Username registry for uniqueness — readable by all, writable only for
+    // the account that owns the handle (no hijacking an existing name).
     match /usernames/{username} {
       allow read: if true;
-      allow write: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
   }
 }

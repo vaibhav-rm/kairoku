@@ -53,8 +53,8 @@ export default function LoginPage() {
         variant="outline"
         className="mt-3 w-full py-3"
         onClick={async () => {
-          await signInGoogle();
-          router.push("/home");
+          const isNew = await signInGoogle();
+          router.push(isNew ? "/onboarding" : "/home");
         }}
       >
         Continue with Google
