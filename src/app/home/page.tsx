@@ -9,28 +9,40 @@ import { useMounted } from "@/hooks/use-mounted";
 import { animeSlug, greeting, timeUntil } from "@/lib/utils";
 import { ContinueCard } from "@/components/anime-cards";
 import { RankCard, ShowtimeRow, Spotlight } from "@/components/cinema";
-import { EmptyState, Skeleton, StarsDisplay } from "@/components/ui";
-import { getBrowseLists } from "@/lib/anime-api";
+import { EmptyState, Skeleton } from "@/components/ui";
 import type { Anime } from "@/types";
-import type { ProviderStatus } from "@/lib/anime-api";
+import { buildRecommendations, type RecommendationBundle } from "@/lib/recommend";
+import { RecommendationCard } from "@/components/recommend";
 
 export default function HomePage() {
-  const { user, ready, library, logs, reviews } = useStore();
+  const { user, ready, library, reviews, lists } = useStore();
   const mounted = useMounted();
   const router = useRouter();
   const [recs, setRecs] = useState<Anime[]>([]);
-  const [live, setLive] = useState<ProviderStatus>("mock");
+  const [bundle, setBundle] = useState<RecommendationBundle | null>(null);
 
   useEffect(() => {
     if (ready && !user) router.replace("/");
   }, [ready, user, router]);
 
   useEffect(() => {
-    getBrowseLists().then((b) => {
-      setRecs(b.trending.slice(0, 8));
-      setLive(b.live);
-    }).catch(() => {});
-  }, []);
+    if (!user) return;
+    let alive = true;
+    buildRecommendations(
+      { library, reviews, favoriteGenres: user.favoriteGenres },
+      10
+    )
+      .then((b) => {
+        if (!alive) return;
+        setBundle(b);
+        setRecs(b.forYou.map((r) => r.anime).slice(0, 8));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, library.length, reviews.length]);
 
   if (!mounted || !ready || !user) {
     return (
@@ -47,7 +59,14 @@ export default function HomePage() {
   const upcoming = library
     .filter((e) => e.anime?.nextEpisode || e.anime?.airing)
     .slice(0, 4);
-  const totalEps = library.reduce((s, e) => s + e.currentEpisode, 0) + logs.length;
+  const totalEps = library.reduce((s, e) => s + e.currentEpisode, 0);
+  const nextUp = library
+    .filter((e) => e.anime?.nextEpisode?.airsAt)
+    .sort(
+      (a, b) =>
+        new Date(a.anime!.nextEpisode!.airsAt).getTime() -
+        new Date(b.anime!.nextEpisode!.airsAt).getTime()
+    )[0];
 
   return (
     <div className="space-y-12 pt-4">
@@ -58,8 +77,8 @@ export default function HomePage() {
             {greeting()}, {user.displayName}.
           </h1>
         </div>
-        <Link href="/diary" className="hidden shrink-0 items-center gap-1 text-sm text-zinc-400 hover:text-white sm:inline-flex">
-          Tonight&apos;s diary <ArrowUpRight size={15} />
+        <Link href="/upcoming" className="hidden shrink-0 items-center gap-1 text-sm text-zinc-400 hover:text-white sm:inline-flex">
+          Upcoming <ArrowUpRight size={15} />
         </Link>
       </header>
 
@@ -147,12 +166,12 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* PROGRAM — stats + diary */}
+        {/* PROGRAM — stats + next up */}
         <aside className="space-y-4">
           <div className="sunset-glow rounded-2xl border border-white/10 bg-[#141110] p-6">
             <h3 className="text-[11px] font-bold uppercase tracking-[0.28em] text-zinc-500">Tonight&apos;s program</h3>
             <dl className="mt-4 space-y-3">
-              {[["On the reel", watching.length], ["Episodes logged", totalEps], ["Reviews written", reviews.length], ["Diary entries", logs.length]].map(([k, v]) => (
+              {[["On the reel", watching.length], ["Episodes watched", totalEps], ["Reviews written", reviews.length], ["Lists made", lists.length]].map(([k, v]) => (
                 <div key={k as string} className="flex items-baseline justify-between border-b border-white/[0.06] pb-3 last:border-0 last:pb-0">
                   <dt className="text-sm text-zinc-500">{k}</dt>
                   <dd className="serif text-3xl tabular-nums text-zinc-50">{v}</dd>
@@ -165,37 +184,40 @@ export default function HomePage() {
           </div>
           <div className="rounded-2xl border border-white/10 bg-[#141110] p-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.28em] text-zinc-500">Latest entry</h3>
-              <Link href="/diary" className="text-xs text-[#e89a7c] hover:text-white">Diary →</Link>
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.28em] text-zinc-500">Up next</h3>
+              <Link href="/upcoming" className="text-xs text-[#e89a7c] hover:text-white">Upcoming →</Link>
             </div>
-            {logs[0] ? (
+            {nextUp?.anime?.nextEpisode ? (
               <div className="mt-3">
-                <p className="text-sm font-semibold text-zinc-100">{logs[0].animeTitle} — Ep {logs[0].episodeNumber}</p>
-                <div className="mt-1"><StarsDisplay value={logs[0].rating} /></div>
-                {logs[0].note && <p className="serif mt-2 text-lg italic leading-snug text-zinc-200">“{logs[0].note}”</p>}
+                <p className="text-sm font-semibold text-zinc-100">{nextUp.anime.title}</p>
+                <p className="text-xs text-zinc-500">Episode {nextUp.anime.nextEpisode.number}</p>
+                <p className="serif mt-2 text-3xl tabular-nums text-zinc-50">
+                  {timeUntil(nextUp.anime.nextEpisode.airsAt)}
+                </p>
+                <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-zinc-500">
+                  {new Date(nextUp.anime.nextEpisode.airsAt).toLocaleString(undefined, {
+                    weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+                  })}
+                </p>
               </div>
             ) : (
-              <p className="mt-3 text-sm text-zinc-500">Your story starts with a single episode.</p>
+              <p className="mt-3 text-sm text-zinc-500">Nothing airing soon from your list.</p>
             )}
           </div>
         </aside>
       </section>
 
-      {/* RANKED RAIL */}
+      {/* RANKED RECOMMENDATIONS */}
       {recs.length > 0 && (
         <section>
           <div className="flex items-end justify-between">
-            <h2 className="serif text-2xl text-zinc-50">Top 10 for you</h2>
-            <div className="flex items-center gap-3">
-              {live === "mock" && (
-                <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-amber-300">
-                  Offline catalog
-                </span>
-              )}
-              <Link href="/discover" className="inline-flex items-center gap-1 text-sm text-zinc-400 hover:text-white">
-                Discover <ArrowRight size={14} />
-              </Link>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#e4572e]">あなたへ · Picked for your taste</p>
+              <h2 className="serif mt-1 text-2xl text-zinc-50">Recommended for you</h2>
             </div>
+            <Link href="/recommendations" className="inline-flex items-center gap-1 text-sm text-zinc-400 hover:text-white">
+              See all <ArrowRight size={14} />
+            </Link>
           </div>
           <div className="no-scrollbar snap-row -mx-4 mt-5 flex gap-5 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
             {recs.map((a, i) => (
@@ -204,6 +226,20 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      {/* BECAUSE YOU LIKED */}
+      {bundle?.because.map((rail) => (
+        <section key={rail.anime.malId}>
+          <h2 className="serif text-2xl text-zinc-50">{rail.reason}</h2>
+          <div className="no-scrollbar snap-row -mx-4 mt-4 flex gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+            {rail.items.map((a, i) => (
+              <div key={a.malId} className="w-[150px] shrink-0 snap-start sm:w-[170px]">
+                <RecommendationCard rec={{ anime: a, score: 0, reasons: [`Like ${rail.anime.title}`] }} index={i} />
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

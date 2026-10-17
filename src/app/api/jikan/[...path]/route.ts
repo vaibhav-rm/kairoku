@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const UPSTREAM = "https://api.jikan.moe/v4";
 const TTL = 30 * 60 * 1000; // 30 min fresh
 const MAX_ENTRIES = 400;
+const CACHE_HEADERS = "public, s-maxage=1800, stale-while-revalidate=86400";
 // Browser-like UA: the upstream sits behind Cloudflare, which challenges
 // or blocks non-browser user agents.
 const UA =
@@ -36,7 +37,7 @@ export async function GET(
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < TTL) {
     return NextResponse.json(hit.body, {
-      headers: { "x-kairoku-cache": "hit", "Cache-Control": "public, s-maxage=1800" },
+      headers: { "x-kairoku-cache": "hit", "Cache-Control": CACHE_HEADERS },
     });
   }
   try {
@@ -59,12 +60,21 @@ export async function GET(
     if (upstream.status === 429 && hit) {
       return NextResponse.json(hit.body, { headers: { "x-kairoku-cache": "stale-429" } });
     }
+    // Legit "no such record": pass it through so callers can tell a missing
+    // title apart from a dead provider.
+    if (upstream.status === 404) {
+      const body = await upstream.json().catch(() => ({ error: "not found" }));
+      return NextResponse.json(body, {
+        status: 404,
+        headers: { "x-kairoku-cache": "miss-404" },
+      });
+    }
     if (!upstream.ok) throw new Error(`upstream ${upstream.status}`);
     const body = (await upstream.json()) as unknown;
     cache.set(key, { at: Date.now(), body });
     prune();
     return NextResponse.json(body, {
-      headers: { "x-kairoku-cache": "miss", "Cache-Control": "public, s-maxage=1800" },
+      headers: { "x-kairoku-cache": "miss", "Cache-Control": CACHE_HEADERS },
     });
   } catch (e) {
     const reason = e instanceof Error ? e.message : String(e);

@@ -10,7 +10,6 @@ import { useStore } from "@/lib/store";
 import { Button, Input } from "@/components/ui";
 
 const schema = z.object({
-  username: z.string().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/, "Letters, numbers, underscore only"),
   email: z.string().email("Enter a valid email"),
   password: z.string().min(6, "At least 6 characters"),
 });
@@ -33,18 +32,13 @@ export default function SignupPage() {
         onSubmit={handleSubmit(async (v) => {
           setErr("");
           try {
-            await signUp(v.username, v.email, v.password);
+            await signUp(v.email, v.password);
             router.push("/onboarding");
           } catch (e) {
             setErr(e instanceof Error ? e.message : "Something went wrong.");
           }
         })}
       >
-        <div>
-          <label htmlFor="su-u" className="text-xs text-zinc-400">Username</label>
-          <Input id="su-u" {...register("username")} placeholder="e.g. frieren_fan" autoComplete="username" />
-          {formState.errors.username && <p className="mt-1 text-xs text-red-400">{formState.errors.username.message}</p>}
-        </div>
         <div>
           <label htmlFor="su-e" className="text-xs text-zinc-400">Email</label>
           <Input id="su-e" type="email" {...register("email")} placeholder="you@example.com" autoComplete="email" />
@@ -64,8 +58,8 @@ export default function SignupPage() {
         variant="outline"
         className="mt-3 w-full py-3"
         onClick={async () => {
-          await signInGoogle();
-          router.push("/onboarding");
+          const isNew = await signInGoogle();
+          router.push(isNew ? "/onboarding" : "/home");
         }}
       >
         Continue with Google

@@ -45,6 +45,8 @@ interface KitsuItem {
 interface KitsuDoc {
   data?: KitsuItem[] | KitsuItem;
   included?: { id: string; type: string; attributes?: { title?: string } }[];
+  links?: { first?: string; next?: string; last?: string };
+  meta?: { count?: number };
 }
 
 const FIELDS =
@@ -120,29 +122,49 @@ export async function getKitsuAnime(kitsuId: number): Promise<Anime | null> {
   return item ? mapKitsu(item, doc) : null;
 }
 
-export async function getKitsuEpisodes(kitsuId: number): Promise<Episode[]> {
-  const doc = (await get(
-    `/anime/${kitsuId}/episodes?page[limit]=20&sort=number&fields[episodes]=number,canonicalTitle,synopsis,airdate,length`
-  )) as unknown as {
-    data?: {
-      attributes?: {
-        number?: number;
-        canonicalTitle?: string | null;
-        synopsis?: string | null;
-        airdate?: string | null;
-        length?: number | null;
-      };
-    }[];
-  };
-  return (doc.data || [])
-    .filter((e) => e.attributes?.number != null)
-    .map((e) => ({
-      number: e.attributes!.number!,
-      title: e.attributes!.canonicalTitle || undefined,
-      synopsis: e.attributes!.synopsis || undefined,
-      airDate: e.attributes!.airdate || undefined,
-      runtime: e.attributes!.length ?? 24,
-    }));
+interface KitsuEpisodeDoc {
+  data?: {
+    attributes?: {
+      number?: number;
+      canonicalTitle?: string | null;
+      synopsis?: string | null;
+      airdate?: string | null;
+      length?: number | null;
+    };
+  }[];
+  links?: { next?: string };
+  meta?: { count?: number };
+}
+
+export async function getKitsuEpisodes(
+  kitsuId: number,
+  maxEpisodes = 500
+): Promise<Episode[]> {
+  const out: Episode[] = [];
+  let page = 1;
+  const maxPages = Math.ceil(maxEpisodes / 20);
+  while (page <= maxPages) {
+    const doc = (await get(
+      `/anime/${kitsuId}/episodes?page[limit]=20&page[offset]=${
+        (page - 1) * 20
+      }&sort=number&fields[episodes]=number,canonicalTitle,synopsis,airdate,length`
+    )) as unknown as KitsuEpisodeDoc;
+    const rows = doc.data || [];
+    out.push(
+      ...rows
+        .filter((e) => e.attributes?.number != null)
+        .map((e) => ({
+          number: e.attributes!.number!,
+          title: e.attributes!.canonicalTitle || undefined,
+          synopsis: e.attributes!.synopsis || undefined,
+          airDate: e.attributes!.airdate || undefined,
+          runtime: e.attributes!.length ?? 24,
+        }))
+    );
+    if (!doc.links?.next || rows.length < 20) break;
+    page += 1;
+  }
+  return out;
 }
 
 export async function getKitsuBrowse(): Promise<{ trending: Anime[]; airing: Anime[]; top: Anime[] }> {

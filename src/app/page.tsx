@@ -168,34 +168,46 @@ export default function Landing() {
         </div>
       </Band>
 
-      {/* ————— 02 DIARY ————— */}
-      <Band no="02" jp="日記 · The diary" backdrop={MOCK_ANIME[8].bannerImage}>
+      {/* ————— 02 UPCOMING ————— */}
+      <Band no="02" jp="次回 · Upcoming" backdrop={MOCK_ANIME[8].bannerImage}>
         <div className="grid items-center gap-12 md:grid-cols-2">
           <div>
             <motion.h2 {...fade} className="display serif mt-5 text-4xl leading-[1.05] text-zinc-50 sm:text-6xl">
-              Write down <em>what you felt.</em>
+              Never miss <em>the next drop.</em>
             </motion.h2>
             <motion.p {...fade} className="mt-5 max-w-md leading-relaxed text-zinc-400">
-              Private notes or published reviews — every episode gets a page.
-              Spoilers stay sealed until a reader chooses to open them.
+              Every airing show you&apos;re watching, lined up by release order
+              with a live countdown — and a quiet nudge the moment a new episode
+              lands.
             </motion.p>
             <motion.div {...fade}>
               <Link href="/signup" className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-[#e89a7c] hover:text-white">
-                Start your diary <ArrowRight size={15} />
+                Start tracking <ArrowRight size={15} />
               </Link>
             </motion.div>
           </div>
           <motion.figure {...fade} className="card-lift relative rounded-2xl border border-white/10 bg-black/60 p-8 shadow-2xl backdrop-blur sm:p-10">
-            <span aria-hidden className="serif absolute -top-6 left-6 text-8xl text-[#e4572e]/40">“</span>
             <figcaption className="flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.25em] text-zinc-500">
-              <span>Frieren — Episode 18</span>
-              <span className="text-[#e89a7c]">★★★★★</span>
+              <span>Upcoming</span>
+              <span className="text-[#e89a7c]">Your timezone</span>
             </figcaption>
-            <blockquote className="serif mt-5 text-3xl italic leading-tight text-zinc-50">
-              The quiet moments somehow hit harder than the action.
-            </blockquote>
+            <ul className="mt-5 space-y-4">
+              {[
+                { a: "Frieren", e: "Episode 19", c: "in 4h 12m" },
+                { a: "Dandadan", e: "Episode 13", c: "in 2d 4h" },
+                { a: "Jujutsu Kaisen", e: "Episode 48", c: "in 2d 9h" },
+              ].map((s) => (
+                <li key={s.a} className="flex items-baseline justify-between border-b border-white/10 pb-3 last:border-0 last:pb-0">
+                  <span>
+                    <span className="block text-sm font-semibold text-zinc-100">{s.a}</span>
+                    <span className="text-xs text-zinc-500">{s.e}</span>
+                  </span>
+                  <span className="serif text-lg tabular-nums text-[#e89a7c]">{s.c}</span>
+                </li>
+              ))}
+            </ul>
             <p className="mt-6 border-t border-white/10 pt-4 text-xs tracking-[0.2em] text-zinc-500">
-              OCTOBER 8, 2026 · KEPT PRIVATE
+              NEW EPISODE ALERTS · WHILE YOU&apos;RE WATCHING
             </p>
           </motion.figure>
         </div>
@@ -233,7 +245,7 @@ export default function Landing() {
         <div className="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-4">
           {[
             ["127", "Anime watched"],
-            ["1,842", "Episodes logged"],
+            ["1,842", "Episodes watched"],
             ["612h", "Hours immersed"],
             ["Fantasy", "Favorite genre"],
           ].map(([n, l], i) => (

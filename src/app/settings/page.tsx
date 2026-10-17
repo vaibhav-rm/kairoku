@@ -7,7 +7,7 @@ import { useMounted } from "@/hooks/use-mounted";
 import { Button, Input, Textarea } from "@/components/ui";
 
 export default function SettingsPage() {
-  const { user, ready, updateProfile, signOut, library, logs, reviews, lists } = useStore();
+  const { user, ready, updateProfile, signOut, library, episodeData, watched, reviews, lists } = useStore();
   const mounted = useMounted();
   const router = useRouter();
 
@@ -18,7 +18,7 @@ export default function SettingsPage() {
 
   const exportData = () => {
     const blob = new Blob(
-      [JSON.stringify({ user, library, logs, reviews, lists, exportedAt: new Date().toISOString() }, null, 2)],
+      [JSON.stringify({ user, library, episodeData, watched, reviews, lists, exportedAt: new Date().toISOString() }, null, 2)],
       { type: "application/json" }
     );
     const a = document.createElement("a");
@@ -55,7 +55,7 @@ export default function SettingsPage() {
 
       <section className="rounded-2xl border border-white/10 bg-[#171412] p-5">
         <h2 className="font-semibold text-zinc-100">Privacy</h2>
-        <p className="mt-1 text-sm text-zinc-400">Diary entries are private by default. Only entries you explicitly publish are ever visible to others — private entries are never publicly queryable.</p>
+        <p className="mt-1 text-sm text-zinc-400">Your library, episode progress, and ratings are private by default. Reviews you publish are visible to others — ratings and watch progress never are.</p>
       </section>
 
       <section className="rounded-2xl border border-white/10 bg-[#171412] p-5">

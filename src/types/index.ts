@@ -16,6 +16,8 @@ export interface Anime {
   coverImage: string;
   bannerImage?: string;
   genres: string[];
+  /** Themes + demographics (e.g. "Isekai", "Shounen"), when provided. */
+  themes?: string[];
   studios: string[];
   year?: number;
   type?: string;
@@ -55,6 +57,8 @@ export interface AppUser {
   favoriteAnime?: string;
   favoriteGenres?: string[];
   createdAt: string;
+  /** True once the user has completed onboarding and chosen a username. */
+  onboarded?: boolean;
 }
 
 export interface LibraryEntry {
@@ -69,19 +73,15 @@ export interface LibraryEntry {
   completedAt?: string;
 }
 
-export interface EpisodeLog {
-  id: string;
-  animeId: number;
-  animeTitle: string;
-  coverImage?: string;
-  episodeNumber: number;
-  episodeTitle?: string;
+/**
+ * A user's record for a single episode. The note is optional and always kept
+ * alongside the rating so the two travel together (and to Firestore).
+ */
+export interface EpisodeEntry {
+  /** 0-5 step 0.5, 0 = unrated. */
   rating: number;
-  note: string;
-  isPublic: boolean;
-  spoilers: boolean;
-  date: string; // yyyy-mm-dd
-  createdAt: string;
+  note?: string;
+  updatedAt: string;
 }
 
 export interface AnimeReview {
@@ -104,7 +104,27 @@ export interface CustomList {
   description: string;
   isPublic: boolean;
   animeIds: number[];
+  /**
+   * Snapshot of the anime contained in this list. Kept alongside
+   * `animeIds` so a list keeps its titles even if they're later removed
+   * from the library (and so non-library titles can be listed at all).
+   */
+  items?: Anime[];
   createdAt: string;
+}
+
+/** A scored recommendation produced by the taste engine. */
+export interface Recommendation {
+  anime: Anime;
+  score: number;
+  reasons: string[];
+}
+
+/** "Because you liked X" rail. */
+export interface RecommendationRail {
+  anime: Anime;
+  reason: string;
+  items: Anime[];
 }
 
 export interface KNotification {
@@ -115,4 +135,15 @@ export interface KNotification {
   read: boolean;
   createdAt: string;
   animeId?: number;
+  /** For episode notifications: which episode aired (used to de-dupe). */
+  episodeNumber?: number;
+}
+
+/** An upcoming (or just-aired) episode for a title you're watching. */
+export interface AiringItem {
+  anime: Anime;
+  episode: Episode;
+  /** Milliseconds since epoch when the episode airs. */
+  airsAt: number;
+  kind: "upcoming" | "recent";
 }
