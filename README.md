@@ -65,6 +65,25 @@ distinguishable from a dead provider), responses carry
 requests for the same key and self-throttles to stay under Jikan's 3 req/s
 limit. Kitsu episode lists paginate too, so the fallback path is complete.
 
+### Client cache
+
+Every provider response is cached in `localStorage` (`kairoku:apicache:v2:*`)
+with a timestamp, so a reload or revisit reuses what's already on the device
+instead of calling the API again — only genuinely new keys (a fresh search, an
+unseen page/episode/genre) hit the network. Freshness is per-key and never
+exceeds a day:
+
+| Data | TTL |
+| --- | --- |
+| Episode lists, this-season browse | 3 hours |
+| Search results (default) | 8 hours |
+| Anime detail, genres, top lists, recommendations | 24 hours |
+
+Expired entries are pruned on write, the store is capped at 150 entries
+(oldest evicted first), a quota error evicts and retries, and stale copies are
+still served while the provider is down. Settings → **Cached anime data** →
+*Clear cached anime data* wipes it (`clearApiCache()` in `src/lib/anime-api.ts`).
+
 ## Firebase
 
 `.env.local` is configured for project `kairoku-d9538` (gitignored).

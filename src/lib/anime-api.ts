@@ -22,7 +22,15 @@ export class NotFoundError extends Error {
 }
 
 const cache = new Map<string, { at: number; data: unknown }>();
-const TTL = 1000 * 60 * 30;
+// Persistent (localStorage-backed) response cache so a reload or navigation
+// doesn't re-hit the provider for data we already have. Freshness is per-key
+// and never exceeds a day.
+const TTL_SHORT = 1000 * 60 * 60 * 3; // 3 hours — airing & episode lists
+const TTL = 1000 * 60 * 60 * 8; // 8 hours — default (e.g. search results)
+const TTL_LONG = 1000 * 60 * 60 * 24; // 24 hours — near-static metadata
+const CACHE_PREFIX = "kairoku:apicache:v2:";
+const LEGACY_PREFIX = "kairoku:apicache:";
+const MAX_ENTRIES = 150;
 // Negative cache: when the provider is down, don't hammer it on every
 // remount/navigation — fail fast to cached/mock data for a minute, then retry.
 const failedAt = new Map<string, number>();
@@ -30,6 +38,68 @@ const FAIL_TTL = 1000 * 60;
 // In-flight de-dupe: two components asking for the same key at the same
 // time share a single network request instead of racing each other.
 const inflight = new Map<string, Promise<unknown>>();
+
+/** How long a given cache key stays fresh. */
+function ttlFor(key: string): number {
+  // Airing/episode data moves as episodes release — keep it short.
+  if (key.startsWith("eps:") || key.startsWith("season-now")) return TTL_SHORT;
+  // Near-static metadata is safe for a full day.
+  if (
+    key.startsWith("anime:") ||
+    key.startsWith("genres") ||
+    key.startsWith("genre:") ||
+    key.startsWith("top-anime") ||
+    key.startsWith("recs:")
+  )
+    return TTL_LONG;
+  // Search queries and anything else.
+  return TTL;
+}
+
+let lastPrune = 0;
+/** Drop expired entries, migrate away the old format, and cap the entry count. */
+function pruneCache() {
+  if (typeof window === "undefined") return;
+  try {
+    const entries: { k: string; at: number }[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (k.startsWith(LEGACY_PREFIX) && !k.startsWith(CACHE_PREFIX)) {
+        localStorage.removeItem(k); // obsolete cache format — never read again
+        i--;
+        continue;
+      }
+      if (!k.startsWith(CACHE_PREFIX)) continue;
+      let at = 0;
+      try {
+        at = (JSON.parse(localStorage.getItem(k) || "") as { at?: number }).at || 0;
+      } catch {
+        at = 0;
+      }
+      entries.push({ k, at });
+    }
+    const now = Date.now();
+    const live: { k: string; at: number }[] = [];
+    for (const e of entries) {
+      if (now - e.at >= ttlFor(e.k.slice(CACHE_PREFIX.length))) {
+        localStorage.removeItem(e.k);
+      } else {
+        live.push(e);
+      }
+    }
+    if (live.length > MAX_ENTRIES) {
+      live.sort((a, b) => a.at - b.at);
+      for (const e of live.slice(0, live.length - MAX_ENTRIES)) localStorage.removeItem(e.k);
+    }
+  } catch {}
+}
+
+function maybePrune() {
+  if (Date.now() - lastPrune < 60_000) return;
+  lastPrune = Date.now();
+  pruneCache();
+}
 
 // Jikan allows ~3 requests/second. Serialise our client calls just under
 // that ceiling so a burst of rails never trips a 429.
@@ -41,34 +111,74 @@ async function throttle(): Promise<void> {
   lastCall = Date.now();
 }
 
-function lsGet<T>(key: string): T | null {
+function lsGet<T>(key: string): { at: number; data: T } | null {
+  if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(`kairoku:apicache:${key}`);
-    return raw ? (JSON.parse(raw).data as T) : null;
+    const raw = localStorage.getItem(CACHE_PREFIX + key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { at?: number; data?: T };
+    if (!parsed || typeof parsed.at !== "number") return null;
+    return { at: parsed.at, data: parsed.data as T };
   } catch {
     return null;
   }
 }
 function lsSet(key: string, data: unknown) {
+  if (typeof window === "undefined") return;
+  const write = () =>
+    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ at: Date.now(), data }));
   try {
-    localStorage.setItem(
-      `kairoku:apicache:${key}`,
-      JSON.stringify({ at: Date.now(), data })
-    );
+    write();
+  } catch {
+    // Storage full — evict the oldest entries and try once more.
+    pruneCache();
+    try {
+      write();
+    } catch {}
+  }
+  maybePrune();
+}
+
+/** Remove every cached provider response. Returns how many entries were dropped. */
+export function clearApiCache(): number {
+  if (typeof window === "undefined") return 0;
+  let removed = 0;
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(LEGACY_PREFIX)) {
+        localStorage.removeItem(k);
+        removed++;
+      }
+    }
+    cache.clear();
+    failedAt.clear();
   } catch {}
+  return removed;
 }
 
 async function cached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+  const now = Date.now();
+  const ttl = ttlFor(key);
+
+  // Fast path: an in-memory entry that's still fresh.
   const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < TTL) return hit.data as T;
+  if (hit && now - hit.at < ttl) return hit.data as T;
+
+  // Persistent hit (survives reloads/navigation) — hydrate memory and return
+  // without touching the network.
+  const stored = lsGet<T>(key);
+  if (stored && now - stored.at < ttl) {
+    cache.set(key, stored);
+    return stored.data;
+  }
 
   const running = inflight.get(key);
   if (running) return running as Promise<T>;
 
   const failed = failedAt.get(key);
-  if (failed && Date.now() - failed < FAIL_TTL) {
-    const stale = lsGet<T>(key);
-    if (stale) return stale;
+  if (failed && now - failed < FAIL_TTL) {
+    if (stored) return stored.data; // any stale copy beats nothing
     throw new Error("provider cooling down");
   }
 
@@ -76,13 +186,13 @@ async function cached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
     try {
       const data = await fetcher();
       failedAt.delete(key);
-      cache.set(key, { at: Date.now(), data });
+      const entry = { at: Date.now(), data };
+      cache.set(key, entry);
       lsSet(key, data);
       return data;
     } catch (e) {
       failedAt.set(key, Date.now());
-      const stale = lsGet<T>(key);
-      if (stale) return stale;
+      if (stored) return stored.data;
       throw e;
     } finally {
       inflight.delete(key);
@@ -427,7 +537,7 @@ export async function getBrowseLists(): Promise<BrowseLists> {
 /** Top anime, optionally paged — used as a recommendation candidate pool. */
 export async function getTopAnime(page = 1, limit = 24): Promise<Anime[]> {
   try {
-    const json = await cached(`top-anime:${page}`, () =>
+    const json = await cached(`top-anime:${page}:${limit}`, () =>
       jikan<{ data?: JikanAnime[] }>(
         `/top/anime?limit=${limit}&sfw=true${pageQuery(page)}`
       )
@@ -473,7 +583,7 @@ export async function getAnimeByGenre(
   limit = 18
 ): Promise<Anime[]> {
   try {
-    const json = await cached(`genre:${genreId}`, () =>
+    const json = await cached(`genre:${genreId}:${limit}`, () =>
       jikan<{ data?: JikanAnime[] }>(
         `/anime?genres=${genreId}&order_by=score&sort=desc&limit=${limit}&sfw=true&min_score=6.5`
       )
