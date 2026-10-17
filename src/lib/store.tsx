@@ -14,12 +14,12 @@ import type {
   AnimeReview,
   AppUser,
   CustomList,
-  EpisodeLog,
   KNotification,
   LibraryEntry,
   LibraryStatus,
 } from "@/types";
 import { auth, db, initAnalytics, isFirebaseConfigured } from "@/lib/firebase";
+import { getAiringInfo } from "@/lib/airing";
 
 interface Store {
   user: AppUser | null;
@@ -40,8 +40,10 @@ interface Store {
   watched: Record<string, number[]>;
   isWatched: (animeId: number, episode: number) => boolean;
   toggleWatched: (anime: Anime, episode: number, total?: number | null) => void;
-  logs: EpisodeLog[];
-  addLog: (log: Omit<EpisodeLog, "id" | "createdAt">) => EpisodeLog;
+  /** Per-episode star ratings: animeId -> episode -> 0..5 (0 = unrated). */
+  episodeRatings: Record<string, Record<string, number>>;
+  getEpisodeRating: (animeId: number, episode: number) => number;
+  setEpisodeRating: (animeId: number, episode: number, rating: number) => void;
   reviews: AnimeReview[];
   addReview: (r: Omit<AnimeReview, "id" | "createdAt" | "likes">) => AnimeReview;
   toggleLikeReview: (id: string) => void;
@@ -55,6 +57,8 @@ interface Store {
   hasInList: (listId: string, animeId: number) => boolean;
   notifications: KNotification[];
   markAllRead: () => void;
+  /** Check airing titles for newly-released episodes and notify. */
+  syncAiringNotifications: () => Promise<void>;
   toast: string | null;
   showToast: (msg: string) => void;
 }
@@ -78,35 +82,17 @@ function save(key: string, val: unknown) {
 const uid = () =>
   Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
-function seedNotifications(): KNotification[] {
-  return [
-    {
-      id: uid(),
-      type: "episode",
-      title: "Episode 1147 of One Piece is out",
-      body: "Tomorrow · 7:30 PM your time",
-      read: false,
-      createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
-      animeId: 21,
-    },
-    {
-      id: uid(),
-      type: "episode",
-      title: "Episode 13 of Dandadan airs soon",
-      body: "Releases in 2d 4h",
-      read: false,
-      createdAt: new Date(Date.now() - 3600000 * 9).toISOString(),
-      animeId: 60489,
-    },
-  ];
-}
+/** How long to wait between airing checks for new episodes. */
+const AIRING_SYNC_TTL = 1000 * 60 * 60 * 3;
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [ready, setReady] = useState(false);
   const [library, setLibrary] = useState<LibraryEntry[]>([]);
   const [watched, setWatched] = useState<Record<string, number[]>>({});
-  const [logs, setLogs] = useState<EpisodeLog[]>([]);
+  const [episodeRatings, setEpisodeRatings] = useState<
+    Record<string, Record<string, number>>
+  >({});
   const [reviews, setReviews] = useState<AnimeReview[]>([]);
   const [lists, setLists] = useState<CustomList[]>([]);
   const [notifications, setNotifications] = useState<KNotification[]>([]);
@@ -119,11 +105,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setUser(load<AppUser | null>("kairoku:user", null));
     setLibrary(load("kairoku:library", []));
     setWatched(load<Record<string, number[]>>("kairoku:watched", {}));
-    setLogs(load("kairoku:logs", []));
+    setEpisodeRatings(
+      load<Record<string, Record<string, number>>>("kairoku:episodeRatings", {})
+    );
     setReviews(load("kairoku:reviews", []));
     setLists(load("kairoku:lists", []));
-    const n = load<KNotification[] | null>("kairoku:notifs", null);
-    setNotifications(n ?? seedNotifications());
+    setNotifications(load<KNotification[]>("kairoku:notifs", []));
     // If Firebase configured, attach auth listener lazily
     (async () => {
       if (isFirebaseConfigured && auth) {
@@ -155,7 +142,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => save("kairoku:library", library), [library]);
   useEffect(() => save("kairoku:watched", watched), [watched]);
-  useEffect(() => save("kairoku:logs", logs), [logs]);
+  useEffect(() => save("kairoku:episodeRatings", episodeRatings), [episodeRatings]);
   useEffect(() => save("kairoku:reviews", reviews), [reviews]);
   useEffect(() => save("kairoku:lists", lists), [lists]);
   useEffect(() => save("kairoku:notifs", notifications), [notifications]);
@@ -324,7 +311,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const setAnimeRating = (animeId: number, rating: number) => {
     setLibrary((prev) => prev.map((e) => e.animeId === animeId ? { ...e, rating, updatedAt: new Date().toISOString() } : e));
-    showToast("Added to your diary.");
+    showToast("Rating saved.");
   };
 
   const removeFromLibrary = (animeId: number) =>
@@ -332,10 +319,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const isWatched = (animeId: number, episode: number): boolean => {
     if ((watched[String(animeId)] || []).includes(episode)) return true;
-    if (logs.some((l) => l.animeId === animeId && l.episodeNumber === episode))
-      return true;
     const entry = library.find((e) => e.animeId === animeId);
     return !!entry && entry.currentEpisode >= episode;
+  };
+
+  const getEpisodeRating: Store["getEpisodeRating"] = (animeId, episode) =>
+    episodeRatings[String(animeId)]?.[String(episode)] || 0;
+
+  const setEpisodeRating: Store["setEpisodeRating"] = (animeId, episode, rating) => {
+    setEpisodeRatings((prev) => {
+      const forAnime = { ...(prev[String(animeId)] || {}) };
+      if (rating > 0) forAnime[String(episode)] = rating;
+      else delete forAnime[String(episode)];
+      return { ...prev, [String(animeId)]: forAnime };
+    });
+    if (rating > 0) showToast(`Episode ${episode} rated.`);
   };
 
   const toggleWatched: Store["toggleWatched"] = (anime, episode, total) => {
@@ -378,25 +376,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addLog: Store["addLog"] = (log) => {
-    const entry: EpisodeLog = { ...log, id: uid(), createdAt: new Date().toISOString() };
-    setLogs((prev) => [entry, ...prev]);
-    setWatched((prev) => {
-      const list = prev[String(log.animeId)] || [];
-      if (list.includes(log.episodeNumber)) return prev;
-      return { ...prev, [String(log.animeId)]: [...list, log.episodeNumber].sort((a, b) => a - b) };
-    });
-    setLibrary((prev) => prev.map((e) => e.animeId === log.animeId ? {
-      ...e, currentEpisode: Math.max(e.currentEpisode, log.episodeNumber), updatedAt: new Date().toISOString(),
-    } : e));
-    showToast(log.isPublic ? "Published to your diary." : "You finished another episode.");
-    return entry;
-  };
-
   const addReview: Store["addReview"] = (r) => {
     const entry: AnimeReview = { ...r, id: uid(), likes: 0, createdAt: new Date().toISOString() };
     setReviews((prev) => [entry, ...prev]);
-    showToast("Added to your diary.");
+    showToast("Review published.");
     return entry;
   };
 
@@ -461,18 +444,82 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     !!lists.find((l) => l.id === listId)?.items?.some((i) => i.malId === animeId);
   const markAllRead = () => setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
 
+  // Notify when an airing title you're watching has a new episode out.
+  const syncAiringNotifications: Store["syncAiringNotifications"] = async () => {
+    const watching = library.filter(
+      (e) => e.anime?.airing && e.status === "watching"
+    );
+    if (!watching.length) return;
+
+    const fresh: KNotification[] = [];
+    await Promise.all(
+      watching.map(async (entry) => {
+        const anime = entry.anime!;
+        try {
+          const { latest } = await getAiringInfo(anime.malId);
+          if (!latest || latest.number <= (entry.currentEpisode || 0)) return;
+          fresh.push({
+            id: uid(),
+            type: "episode",
+            title: `${anime.title} — Episode ${latest.number} is out`,
+            body: `You're on episode ${entry.currentEpisode || 0}${
+              latest.airDate
+                ? ` · aired ${new Date(latest.airDate).toLocaleDateString()}`
+                : ""
+            }`,
+            read: false,
+            createdAt: new Date().toISOString(),
+            animeId: anime.malId,
+            episodeNumber: latest.number,
+          });
+        } catch {}
+      })
+    );
+    if (!fresh.length) return;
+
+    setNotifications((prev) => {
+      const seen = new Set(
+        prev
+          .filter((n) => n.type === "episode")
+          .map((n) => `${n.animeId}:${n.episodeNumber}`)
+      );
+      const added = fresh.filter(
+        (n) => !seen.has(`${n.animeId}:${n.episodeNumber}`)
+      );
+      return added.length ? [...added, ...prev] : prev;
+    });
+  };
+
+  // Run the airing check at most once every few hours per browser.
+  useEffect(() => {
+    if (!ready || !user || library.length === 0) return;
+    try {
+      const last = Number(localStorage.getItem("kairoku:airingSyncedAt") || 0);
+      if (Date.now() - last < AIRING_SYNC_TTL) return;
+      localStorage.setItem("kairoku:airingSyncedAt", String(Date.now()));
+    } catch {
+      return;
+    }
+    // The state updates happen asynchronously after the network round-trip;
+    // this is a background sync, not a synchronous render-loop trigger.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    syncAiringNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, user, library.length]);
+
   const value = useMemo<Store>(
     () => ({
       user, ready, firebaseMode: isFirebaseConfigured,
       signIn, signUp, signInGoogle, signOut, updateProfile,
       library, upsertLibrary, setStatus, setProgress, setAnimeRating, removeFromLibrary,
       watched, isWatched, toggleWatched,
-      logs, addLog, reviews, addReview, toggleLikeReview,
+      episodeRatings, getEpisodeRating, setEpisodeRating,
+      reviews, addReview, toggleLikeReview,
       lists, saveList, deleteList, addToList, removeFromList, hasInList,
-      notifications, markAllRead, toast, showToast,
+      notifications, markAllRead, syncAiringNotifications, toast, showToast,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, ready, library, watched, logs, reviews, lists, notifications, toast]
+    [user, ready, library, watched, episodeRatings, reviews, lists, notifications, toast]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

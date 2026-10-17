@@ -9,11 +9,11 @@ import { animeSlug } from "@/lib/utils";
 import { EmptyState, Skeleton, StarsDisplay } from "@/components/ui";
 import { SafeImage } from "@/components/safe-image";
 
-const TABS = ["Overview", "Diary", "Reviews", "Anime", "Lists"] as const;
+const TABS = ["Overview", "Episodes", "Reviews", "Anime", "Lists"] as const;
 
 export default function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = use(params);
-  const { user, library, logs, reviews, lists, toggleLikeReview } = useStore();
+  const { user, library, episodeRatings, reviews, lists, toggleLikeReview } = useStore();
   const mounted = useMounted();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Overview");
   if (!mounted) {
@@ -32,6 +32,8 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   library.forEach((e) => e.anime?.genres.forEach((g) => genreCount.set(g, (genreCount.get(g) || 0) + 1)));
   const topGenre = [...genreCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
   const avg = library.length ? library.reduce((s, e) => s + (e.rating || 0), 0) / Math.max(1, library.filter((e) => e.rating > 0).length || 1) : 0;
+  const episodesRated = Object.values(episodeRatings).reduce((s, o) => s + Object.keys(o).length, 0);
+  const allRatings = [...reviews.map((x) => x.rating), ...Object.values(episodeRatings).flatMap((o) => Object.values(o))];
 
   // Public profile fallback for demo usernames
   const display = isOwn && user ? user : {
@@ -69,7 +71,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           [totalEps, "Episodes"],
           [hours, "Hours"],
           [reviews.length, "Reviews"],
-          [logs.length, "Diary"],
+          [episodesRated, "Eps rated"],
           [topGenre, "Top genre"],
         ].map(([v, l]) => (
           <div key={l as string} className="rounded-2xl border border-white/10 bg-[#171412] p-4 text-center">
@@ -100,7 +102,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           <p className="serif mt-2 text-4xl text-zinc-50">{avg ? avg.toFixed(1) : "—"} <span className="text-base text-zinc-500">average</span></p>
           <div className="mt-3 flex items-end gap-1.5">
             {[5, 4.5, 4, 3.5, 3].map((r) => {
-              const n = [...logs, ...reviews.map((x) => ({ rating: x.rating }))].filter((x) => Math.abs(x.rating - r) < 0.26).length;
+              const n = allRatings.filter((v) => Math.abs(v - r) < 0.26).length;
               return (
                 <div key={r} className="flex-1 text-center">
                   <div className="mx-auto w-full rounded-t bg-[#e4572e]/70" style={{ height: `${Math.max(4, n * 14)}px` }} />
@@ -124,25 +126,29 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       <div className="mt-5">
         {tab === "Overview" && (
           <div className="space-y-3">
-            {[...logs].slice(0, 4).map((l) => (
-              <p key={l.id} className="rounded-2xl border border-white/[0.07] bg-[#141110] p-4 text-sm text-zinc-300">
-                <span className="font-semibold text-zinc-100">@{display.username}</span> rated <span className="text-zinc-100">{l.animeTitle} Ep {l.episodeNumber}</span> ★★★★★
-                {l.note ? <span className="serif block italic text-zinc-400">“{l.note}”</span> : null}
+            {[...reviews].slice(0, 4).map((r) => (
+              <p key={r.id} className="rounded-2xl border border-white/[0.07] bg-[#141110] p-4 text-sm text-zinc-300">
+                <span className="font-semibold text-zinc-100">@{display.username}</span> reviewed <span className="text-zinc-100">{r.title}</span>
+                {r.body ? <span className="serif block italic text-zinc-400">“{r.body.slice(0, 140)}”</span> : null}
               </p>
             ))}
-            {logs.length === 0 && <EmptyState title="Quiet here — for now." body="Activity will appear as you track, rate, and review." />}
+            {reviews.length === 0 && <EmptyState title="Quiet here — for now." body="Activity will appear as you track, rate, and review." />}
           </div>
         )}
-        {tab === "Diary" && (
+        {tab === "Episodes" && (
           <div className="space-y-3">
-            {logs.map((l) => (
-              <div key={l.id} className="rounded-2xl border border-white/10 bg-[#171412] p-4">
-                <p className="font-medium text-zinc-100">{l.animeTitle} — Ep {l.episodeNumber}</p>
-                <StarsDisplay value={l.rating} />
-                {l.note && <p className="serif italic text-zinc-300">“{l.note}”</p>}
+            {library.filter((e) => e.currentEpisode > 0).map((e) => (
+              <div key={e.animeId} className="rounded-2xl border border-white/10 bg-[#171412] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <Link href={`/anime/${animeSlug(e.animeId, e.anime?.title || "")}`} className="font-medium text-zinc-100 hover:text-white">{e.anime?.title}</Link>
+                  <span className="shrink-0 text-xs tabular-nums text-zinc-500">Ep {e.currentEpisode}{e.totalEpisodes ? ` / ${e.totalEpisodes}` : ""}</span>
+                </div>
+                <div className="mt-2 h-1.5 rounded-full bg-white/10">
+                  <div className="h-full rounded-full bg-gradient-to-r from-[#e4572e] to-amber-400" style={{ width: `${e.totalEpisodes ? Math.min(100, (e.currentEpisode / e.totalEpisodes) * 100) : 8}%` }} />
+                </div>
               </div>
             ))}
-            {logs.length === 0 && <EmptyState title="No diary entries." body="Your story starts with a single episode." />}
+            {library.filter((e) => e.currentEpisode > 0).length === 0 && <EmptyState title="No episodes watched yet." body="Tick off an episode and it will show up here." />}
           </div>
         )}
         {tab === "Reviews" && (

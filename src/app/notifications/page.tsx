@@ -40,7 +40,7 @@ export default function NotificationsPage() {
                 <p className="text-xs text-zinc-500">{n.body} · {new Date(n.createdAt).toLocaleString()}</p>
                 {n.animeId && (
                   <Link href={`/anime/${n.animeId}`} className="mt-2 inline-block rounded-full bg-[#e4572e] px-4 py-1.5 text-xs font-semibold text-white">
-                    Log episode
+                    Open series
                   </Link>
                 )}
               </div>

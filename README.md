@@ -1,6 +1,7 @@
 # Kairoku — Remember every story
 
-A personal anime tracking + journaling platform (Letterboxd × MyAnimeList × diary).
+A personal anime tracking, rating, and recommendation platform
+(Letterboxd × MyAnimeList) with a live airing schedule.
 Next.js 16 · React 19 · TypeScript · Tailwind v4 · Firebase · Jikan API.
 
 ## Features
@@ -12,18 +13,22 @@ Next.js 16 · React 19 · TypeScript · Tailwind v4 · Firebase · Jikan API.
   jumps, and prev/next episode navigation on the episode page. Long-runners
   page through Jikan so One Piece isn't capped at 100 episodes.
 - **Ratings** — half-star series ratings plus separate per-episode ratings,
-  both surfaced in the library, diary, and profile statistics.
+  both surfaced in the library and profile statistics.
 - **Lists** — create public or private collections, add titles straight from any
   anime page or from your library, and remove/reorder-free manage them. Lists
   keep a snapshot of their titles so they survive library deletions.
 - **Recommendations** — a client-side taste engine (`src/lib/recommend.ts`)
   that scores candidates against genre/studio/decade affinities derived from
-  your statuses, ratings, diary, reviews, and favourite genres. It blends MAL's
+  your statuses, ratings, reviews, and favourite genres. It blends MAL's
   own similarity graph ("Because you liked X"), top titles within your top
   genres, this season's airing shows, and all-time top anime. See
   `/recommendations`, plus rails on Home and Discover.
-- **Diary & reviews** — private entries by default, publishable as public
-  reviews, with spoiler gating and likes.
+- **Upcoming & alerts** — `/upcoming` lists the next episodes of every airing
+  title you're watching, in release order, with a live countdown and the exact
+  air date/time in your timezone. New episodes of watched airing shows raise an
+  in-app notification (`src/lib/airing.ts` resolves them from real episode air
+  dates).
+- **Reviews** — publish public reviews with spoiler gating and likes.
 
 ## Getting started
 
@@ -41,7 +46,7 @@ If Jikan is unreachable, the client falls back to the [Kitsu API](https://kitsu.
 (direct browser calls, permissive CORS), then to the built-in seed catalog.
 Discover shows a Live/Offline badge so the data source is always transparent.
 Kitsu records use namespaced IDs (see `src/lib/kitsu.ts`) that route through
-the same pages, library, and diary code paths.
+the same pages and library code paths.
 Artwork goes through `/api/image?url=` (same-origin bytes with correct MIME,
 branded SVG placeholder on failure) via the `SafeImage` component, so
 hotlink/ORB-blocked posters never render broken.

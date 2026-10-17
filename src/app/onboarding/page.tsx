@@ -140,7 +140,7 @@ export default function OnboardingPage() {
           <h1 className="serif mt-2 text-4xl text-zinc-50">Welcome to Kairoku.</h1>
           <p className="mx-auto mt-3 max-w-md text-sm text-zinc-400">
             {picked.length > 0
-              ? `Your library starts with ${picked.length} ${picked.length === 1 ? "story" : "stories"}. Log episodes as you watch — your diary will take care of the rest.`
+              ? `Your library starts with ${picked.length} ${picked.length === 1 ? "story" : "stories"}. Mark episodes watched as you go — we'll count down to the next one for you.`
               : "Your shelf is empty and full of possibility. Let's find your first story."}
           </p>
           <div className="mt-6 flex justify-center gap-3">

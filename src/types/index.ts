@@ -71,21 +71,6 @@ export interface LibraryEntry {
   completedAt?: string;
 }
 
-export interface EpisodeLog {
-  id: string;
-  animeId: number;
-  animeTitle: string;
-  coverImage?: string;
-  episodeNumber: number;
-  episodeTitle?: string;
-  rating: number;
-  note: string;
-  isPublic: boolean;
-  spoilers: boolean;
-  date: string; // yyyy-mm-dd
-  createdAt: string;
-}
-
 export interface AnimeReview {
   id: string;
   animeId: number;
@@ -137,4 +122,15 @@ export interface KNotification {
   read: boolean;
   createdAt: string;
   animeId?: number;
+  /** For episode notifications: which episode aired (used to de-dupe). */
+  episodeNumber?: number;
+}
+
+/** An upcoming (or just-aired) episode for a title you're watching. */
+export interface AiringItem {
+  anime: Anime;
+  episode: Episode;
+  /** Milliseconds since epoch when the episode airs. */
+  airsAt: number;
+  kind: "upcoming" | "recent";
 }

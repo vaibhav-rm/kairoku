@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, BookOpen, Compass, Home, Library, Search, ListVideo, Sparkles } from "lucide-react";
+import { Bell, CalendarClock, Compass, Home, Library, Search, ListVideo, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useStore } from "@/lib/store";
@@ -13,7 +13,7 @@ const LINKS = [
   { href: "/", label: "Home", icon: Home },
   { href: "/discover", label: "Discover", icon: Compass },
   { href: "/recommendations", label: "For you", icon: Sparkles },
-  { href: "/diary", label: "Diary", icon: BookOpen },
+  { href: "/upcoming", label: "Upcoming", icon: CalendarClock },
   { href: "/library", label: "Library", icon: Library },
   { href: "/lists", label: "Lists", icon: ListVideo },
 ];
@@ -140,7 +140,7 @@ export function BottomNav() {
   const items = [
     { href: u ? "/home" : "/", label: "Home", icon: Home },
     { href: "/discover", label: "Discover", icon: Compass },
-    { href: "/diary", label: "Diary", icon: BookOpen },
+    { href: "/upcoming", label: "Upcoming", icon: CalendarClock },
     { href: "/library", label: "Library", icon: Library },
     { href: u ? `/u/${u.username}` : "/login", label: "Profile", icon: Search },
   ];

@@ -1,7 +1,6 @@
 import type {
   Anime,
   AnimeReview,
-  EpisodeLog,
   LibraryEntry,
   Recommendation,
   RecommendationRail,
@@ -18,13 +17,12 @@ import {
  * A lightweight, fully client-side taste model.
  *
  * Weights are derived from what the user actually did (statuses, star
- * ratings, diary entries, favourite genres) and projected onto genre,
- * studio and decade axes. Recommendation scoring is then a dot product
- * between an anime's attributes and this profile.
+ * ratings, reviews, favourite genres) and projected onto genre, studio and
+ * decade axes. Recommendation scoring is then a dot product between an
+ * anime's attributes and this profile.
  */
 export interface TasteInput {
   library: LibraryEntry[];
-  logs: EpisodeLog[];
   reviews: AnimeReview[];
   favoriteGenres?: string[];
 }
@@ -81,15 +79,6 @@ export function buildTaste(input: TasteInput): Taste {
     rate(entry.anime, w);
   }
 
-  for (const log of input.logs) {
-    const w = log.rating > 0 ? (log.rating - 3) * 0.6 : 0.15;
-    seen.add(log.animeId);
-    const a = input.library.find((e) => e.animeId === log.animeId)?.anime;
-    if (a) {
-      for (const g of a.genres) bump(genres, g, w);
-    }
-  }
-
   for (const review of input.reviews) {
     seen.add(review.animeId);
     const a = input.library.find((e) => e.animeId === review.animeId)?.anime;
@@ -105,7 +94,6 @@ export function buildTaste(input: TasteInput): Taste {
 
   const signal =
     seen.size +
-    input.logs.length * 0.5 +
     input.reviews.length +
     (input.favoriteGenres?.length || 0);
 
