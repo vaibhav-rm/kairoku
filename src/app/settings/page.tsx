@@ -7,7 +7,7 @@ import { useMounted } from "@/hooks/use-mounted";
 import { Button, Input, Textarea } from "@/components/ui";
 
 export default function SettingsPage() {
-  const { user, ready, updateProfile, signOut, library, episodeRatings, watched, reviews, lists } = useStore();
+  const { user, ready, updateProfile, signOut, library, episodeData, watched, reviews, lists } = useStore();
   const mounted = useMounted();
   const router = useRouter();
 
@@ -18,7 +18,7 @@ export default function SettingsPage() {
 
   const exportData = () => {
     const blob = new Blob(
-      [JSON.stringify({ user, library, episodeRatings, watched, reviews, lists, exportedAt: new Date().toISOString() }, null, 2)],
+      [JSON.stringify({ user, library, episodeData, watched, reviews, lists, exportedAt: new Date().toISOString() }, null, 2)],
       { type: "application/json" }
     );
     const a = document.createElement("a");

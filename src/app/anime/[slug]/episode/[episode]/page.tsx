@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { getAnime, getAnimeEpisodes } from "@/lib/anime-api";
@@ -9,18 +9,24 @@ import { animeSlug, malIdFromSlug } from "@/lib/utils";
 import type { Anime, Episode } from "@/types";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/hooks/use-mounted";
-import { Stars, Skeleton, EmptyState } from "@/components/ui";
+import { Stars, Textarea, Skeleton, EmptyState } from "@/components/ui";
 
 export default function EpisodePage({ params }: { params: Promise<{ slug: string; episode: string }> }) {
   const { slug, episode } = use(params);
   const epNum = parseInt(episode, 10);
   const malId = malIdFromSlug(slug);
   const router = useRouter();
-  const { user, ready, getEpisodeRating, setEpisodeRating, isWatched, toggleWatched } = useStore();
+  const {
+    user, ready,
+    getEpisodeRating, getEpisodeNote, setEpisodeRating, setEpisodeNote,
+    isWatched, toggleWatched,
+  } = useStore();
   const mounted = useMounted();
   const [anime, setAnime] = useState<Anime | null>(null);
   const [ep, setEp] = useState<Episode | null>(null);
   const [rating, setRating] = useState(0);
+  const [note, setNote] = useState("");
+  const savedNoteRef = useRef("");
 
   useEffect(() => {
     if (ready && !user) router.replace("/login");
@@ -36,11 +42,26 @@ export default function EpisodePage({ params }: { params: Promise<{ slug: string
 
   useEffect(() => {
     if (!malId) return;
-    // Restore a previously saved rating into the widget.
+    // Restore a previously saved rating + note into the form.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRating(getEpisodeRating(malId, epNum));
+    const stored = getEpisodeNote(malId, epNum);
+    savedNoteRef.current = stored;
+    setNote(stored);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [malId, epNum]);
+
+  // Debounced auto-save of the note (kept alongside the rating).
+  useEffect(() => {
+    if (!anime || !ep) return;
+    if (note === savedNoteRef.current) return;
+    const t = window.setTimeout(() => {
+      savedNoteRef.current = note;
+      setEpisodeNote(anime.malId, ep.number, note);
+    }, 700);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [note, anime, ep]);
 
   if (!malId || isNaN(epNum)) return <div className="pt-10"><EmptyState title="Episode not found." body="That episode doesn't exist." /></div>;
   if (!anime || !ep) return <div className="space-y-3 pt-6"><Skeleton className="h-8 w-64" /><Skeleton className="h-40" /></div>;
@@ -52,9 +73,18 @@ export default function EpisodePage({ params }: { params: Promise<{ slug: string
   const next = total ? (ep.number < total ? ep.number + 1 : null) : ep.number + 1;
   const epHref = (n: number) => `/anime/${animeSlug(anime.malId, anime.title)}/episode/${n}`;
 
+  const storedNote = getEpisodeNote(anime.malId, ep.number);
+  const noteDirty = note !== storedNote;
+
   const rate = (value: number) => {
     setRating(value);
     setEpisodeRating(anime.malId, ep.number, value);
+  };
+
+  const commitNote = () => {
+    if (note === savedNoteRef.current) return;
+    savedNoteRef.current = note;
+    setEpisodeNote(anime.malId, ep.number, note);
   };
 
   return (
@@ -81,12 +111,32 @@ export default function EpisodePage({ params }: { params: Promise<{ slug: string
         <Check size={15} /> {watched ? "Watched" : "Mark as watched"}
       </button>
 
-      {/* Rating */}
+      {/* Rating + optional note */}
       <div className="mt-8 rounded-2xl border border-white/10 bg-[#171412] p-5">
         <p className="text-sm font-medium text-zinc-200">How was it?</p>
         <div className="mt-2 scale-110 origin-left"><Stars value={rating} onRate={rate} size={26} label={`Rate episode ${ep.number}`} /></div>
         <p className="mt-2 text-xs text-zinc-500">
           {rating > 0 ? `Saved — you rated this episode ${rating}★.` : "Tap for full stars, tap again for half. Ratings save as you go."}
+        </p>
+
+        <label htmlFor="ep-note" className="mt-6 block text-sm font-medium text-zinc-200">
+          Notes <span className="font-normal text-zinc-500">(optional)</span>
+        </label>
+        <Textarea
+          id="ep-note"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          onBlur={commitNote}
+          maxLength={600}
+          placeholder="A thought to remember — kept with your rating."
+          className="mt-2 min-h-[120px] text-[15px] leading-relaxed"
+        />
+        <p className="mt-2 text-xs text-zinc-500">
+          {noteDirty
+            ? "Saving…"
+            : storedNote
+              ? "Saved with your rating."
+              : "Private — stored alongside the rating, on this device and in your account."}
         </p>
       </div>
 

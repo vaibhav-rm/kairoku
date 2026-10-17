@@ -15,11 +15,9 @@ service cloud.firestore {
         allow write: if isOwner(userId)
           && request.resource.data.status in ['watching','completed','plan_to_watch','paused','dropped'];
       }
-      match /episodeLogs/{logId} {
-        // private logs: only owner can read; public logs readable by anyone
-        allow read: if isOwner(userId)
-          || (resource.data.isPublic == true);
-        allow write: if isOwner(userId);
+      match /episodes/{animeId} {
+        // Per-anime episode ratings/notes + watched set: private to the owner.
+        allow read, write: if isOwner(userId);
       }
       match /lists/{listId} {
         allow read: if isOwner(userId)

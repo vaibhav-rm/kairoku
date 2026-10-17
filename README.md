@@ -13,7 +13,8 @@ Next.js 16 · React 19 · TypeScript · Tailwind v4 · Firebase · Jikan API.
   jumps, and prev/next episode navigation on the episode page. Long-runners
   page through Jikan so One Piece isn't capped at 100 episodes.
 - **Ratings** — half-star series ratings plus separate per-episode ratings,
-  both surfaced in the library and profile statistics.
+  each able to carry an optional private **note** stored with the rating and
+  surfaced in the library and profile statistics.
 - **Lists** — create public or private collections, add titles straight from any
   anime page or from your library, and remove/reorder-free manage them. Lists
   keep a snapshot of their titles so they survive library deletions.
@@ -65,7 +66,11 @@ limit. Kitsu episode lists paginate too, so the fallback path is complete.
 `.env.local` is configured for project `kairoku-d9538` (gitignored).
 Email/password + Google sign-in and Firestore sync are live:
 
-- Firestore writes (profile, `users/{uid}/library/*`) sync best-effort.
+- Firestore mirrors user-authored data best-effort, debounced and local-first:
+  the profile, `users/{uid}/library/{animeId}`, `users/{uid}/episodes/{animeId}`
+  (per-episode ratings/notes + the watched set), `users/{uid}/lists/{listId}`,
+  and public `animeReviews/{reviewId}`. On sign-in the device backfills anything
+  it's missing from Firestore; local edits always win.
 - Analytics initializes lazily in the browser only (`initAnalytics`).
 - Security rules live in `firestore.rules` — deploy with
   `firebase deploy --only firestore:rules`.

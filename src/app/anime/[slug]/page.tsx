@@ -37,7 +37,7 @@ export default function AnimeDetail({ params }: { params: Promise<{ slug: string
   const [nextAiringEp, setNextAiringEp] = useState<Episode | null>(null);
   const [failed, setFailed] = useState(false);
   const {
-    library, setStatus, setProgress, setAnimeRating, getEpisodeRating, reviews, addReview,
+    library, setStatus, setProgress, setAnimeRating, getEpisodeRating, getEpisodeNote, reviews, addReview,
     isWatched, toggleWatched, lists, saveList, addToList, removeFromList, hasInList,
   } = useStore();
   const entry = library.find((e) => e.animeId === malId);
@@ -349,6 +349,7 @@ export default function AnimeDetail({ params }: { params: Promise<{ slug: string
               <ol className="mt-4 divide-y divide-white/[0.06] overflow-hidden rounded-2xl border border-white/10 bg-[#141110]">
                 {episodes.map((ep) => {
                   const epRating = getEpisodeRating(anime.malId, ep.number);
+                  const epNote = getEpisodeNote(anime.malId, ep.number);
                   const watched = isWatched(anime.malId, ep.number);
                   return (
                     <li key={ep.number} className="flex items-center gap-2 pr-3 transition hover:bg-white/[0.04]">
@@ -372,9 +373,10 @@ export default function AnimeDetail({ params }: { params: Promise<{ slug: string
                           <span className="text-xs text-zinc-500">
                             {[ep.airDate, ep.runtime ? `${ep.runtime} min` : null].filter(Boolean).join(" · ") || "Details on page"}
                           </span>
-                          {epRating > 0 && (
+                          {(epRating > 0 || epNote) && (
                             <span className="mt-1 block truncate text-xs text-amber-200/80">
-                              ★ {epRating.toFixed(1)}
+                              {epRating > 0 ? `★ ${epRating.toFixed(1)}` : ""}
+                              {epNote ? `${epRating > 0 ? " — " : ""}“${epNote}”` : ""}
                             </span>
                           )}
                         </span>

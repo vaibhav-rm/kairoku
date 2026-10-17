@@ -13,7 +13,7 @@ const TABS = ["Overview", "Episodes", "Reviews", "Anime", "Lists"] as const;
 
 export default function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = use(params);
-  const { user, library, episodeRatings, reviews, lists, toggleLikeReview } = useStore();
+  const { user, library, episodeData, reviews, lists, toggleLikeReview } = useStore();
   const mounted = useMounted();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Overview");
   if (!mounted) {
@@ -32,8 +32,16 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   library.forEach((e) => e.anime?.genres.forEach((g) => genreCount.set(g, (genreCount.get(g) || 0) + 1)));
   const topGenre = [...genreCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
   const avg = library.length ? library.reduce((s, e) => s + (e.rating || 0), 0) / Math.max(1, library.filter((e) => e.rating > 0).length || 1) : 0;
-  const episodesRated = Object.values(episodeRatings).reduce((s, o) => s + Object.keys(o).length, 0);
-  const allRatings = [...reviews.map((x) => x.rating), ...Object.values(episodeRatings).flatMap((o) => Object.values(o))];
+  const episodesRated = Object.values(episodeData).reduce(
+    (s, o) => s + Object.values(o).filter((e) => e.rating > 0).length,
+    0
+  );
+  const allRatings = [
+    ...reviews.map((x) => x.rating),
+    ...Object.values(episodeData)
+      .flatMap((o) => Object.values(o).map((e) => e.rating))
+      .filter((r) => r > 0),
+  ];
 
   // Public profile fallback for demo usernames
   const display = isOwn && user ? user : {
