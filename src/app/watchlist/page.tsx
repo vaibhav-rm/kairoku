@@ -5,7 +5,8 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/hooks/use-mounted";
-import { animeSlug, timeUntil } from "@/lib/utils";
+import { timeUntil } from "@/lib/utils";
+import { animeHref } from "@/lib/routes";
 import { Button, EmptyState } from "@/components/ui";
 import { SafeImage } from "@/components/safe-image";
 
@@ -39,7 +40,7 @@ export default function WatchlistPage() {
               <div className="flex gap-3">
                 <SafeImage src={e.anime?.coverImage} alt="" className="h-24 w-16 rounded-xl object-cover" loading="lazy" />
                 <div className="min-w-0">
-                  <Link href={`/anime/${animeSlug(e.animeId, e.anime?.title || "")}`} className="font-medium text-zinc-100 hover:underline">
+                  <Link href={animeHref(e.animeId, e.anime?.title)} className="font-medium text-zinc-100 hover:underline">
                     {e.anime?.title}
                   </Link>
                   <p className="text-xs text-zinc-500">{e.anime?.status || ""}{e.anime?.year ? ` · ${e.anime.year}` : ""}</p>

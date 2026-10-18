@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/hooks/use-mounted";
-import { animeSlug } from "@/lib/utils";
+import { animeHref } from "@/lib/routes";
 import { buildRecommendations, type RecommendationBundle } from "@/lib/recommend";
 import { RecommendationCard, RecommendationSkeleton } from "@/components/recommend";
 import { EmptyState, Skeleton } from "@/components/ui";
@@ -128,7 +128,7 @@ export default function RecommendationsPage() {
                   {rail.reason}
                 </h2>
                 <Link
-                  href={`/anime/${animeSlug(rail.anime.malId, rail.anime.title)}`}
+                  href={animeHref(rail.anime.malId, rail.anime.title)}
                   className="hidden shrink-0 text-sm text-zinc-400 hover:text-white sm:inline"
                 >
                   View title

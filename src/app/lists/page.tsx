@@ -7,6 +7,7 @@ import { Globe, Lock, Plus, Trash2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/hooks/use-mounted";
 import { Button, EmptyState, Input, Textarea } from "@/components/ui";
+import { listHref } from "@/lib/routes";
 
 export default function ListsPage() {
   const { user, ready, lists, saveList, deleteList } = useStore();
@@ -70,7 +71,7 @@ export default function ListsPage() {
           {lists.map((l) => (
             <div key={l.id} className="rounded-2xl border border-white/10 bg-[#171412] p-5">
               <div className="flex items-start justify-between gap-2">
-                <Link href={`/lists/${l.id}`} className="serif text-xl text-zinc-50 hover:underline">{l.name}</Link>
+                <Link href={listHref(l.id)} className="serif text-xl text-zinc-50 hover:underline">{l.name}</Link>
                 <button onClick={() => deleteList(l.id)} aria-label={`Delete ${l.name}`} className="text-zinc-600 hover:text-red-400 cursor-pointer">
                   <Trash2 size={15} />
                 </button>

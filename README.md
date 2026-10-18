@@ -45,16 +45,17 @@ is reserved in the `usernames` registry and stored on the profile.
 ## Anime data
 
 Live metadata comes from the [Jikan API](https://jikan.moe) (no key needed),
-proxied through `/api/jikan/[...path]` — same-origin for the browser (no CORS
-failures), cached 30 min server-side, and serving stale cache on 429s/errors.
+proxied through `/api/jikan/...` — a Cloudflare Pages Function
+(`functions/api/jikan/[[path]].ts`, same-origin for the browser so there are no
+CORS failures), cached 30 min per isolate, and serving stale cache on 429s/errors.
 If Jikan is unreachable, the client falls back to the [Kitsu API](https://kitsu.io)
 (direct browser calls, permissive CORS), then to the built-in seed catalog.
 Discover shows a Live/Offline badge so the data source is always transparent.
 Kitsu records use namespaced IDs (see `src/lib/kitsu.ts`) that route through
 the same pages and library code paths.
-Artwork goes through `/api/image?url=` (same-origin bytes with correct MIME,
-branded SVG placeholder on failure) via the `SafeImage` component, so
-hotlink/ORB-blocked posters never render broken.
+Artwork goes through `/api/image?url=` (a Pages Function: same-origin bytes with
+correct MIME, branded SVG placeholder on failure) via the `SafeImage` component,
+so hotlink/ORB-blocked posters never render broken.
 If the provider is unreachable or rate-limited, the app falls back to the
 built-in seed catalog in `src/lib/mock-data.ts` plus a `localStorage` cache —
 UI development never blocks on the network.
@@ -97,13 +98,62 @@ Email/password + Google sign-in and Firestore sync are live:
 - Analytics initializes lazily in the browser only (`initAnalytics`).
 - Security rules live in `firestore.rules` — deploy with
   `firebase deploy --only firestore:rules`.
+- Add your deployed origin (e.g. `kairoku.pages.dev`, plus any custom domain)
+  to Firebase Auth → Settings → **Authorized domains**, or Google sign-in
+  popups are blocked.
 - If env vars are ever removed, the app falls back to local mode:
   everything persists in `localStorage` under `kairoku:*` keys.
 
+
+## Deploying to Cloudflare Pages
+
+Kairoku builds to a **static export** (`out/`) with its API routes implemented
+as **Pages Functions** (`functions/`). No adapter is needed.
+
+Pages project settings:
+
+| Setting | Value |
+| --- | --- |
+| Build command | `npx next build` |
+| Build output directory | `out` |
+
+Then add the Firebase web config as **build-time** environment variables
+(Production *and* Preview). They are `NEXT_PUBLIC_*`, so Next inlines them at
+build time — without them the deployed app runs in local/offline mode, with no
+auth and no Firestore sync:
+
+```
+NEXT_PUBLIC_FIREBASE_API_KEY=...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+NEXT_PUBLIC_FIREBASE_APP_ID=...
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=...
+```
+
+`public/_routes.json` scopes Functions to `/api/*`, so every other request is
+served straight from the static assets. Preview the whole thing locally
+(static + Functions) with `npm run preview`.
+
+### URLs
+
+`output: "export"` can't emit infinite dynamic routes, so detail pages read
+their id from a query param instead of a path segment:
+
+| Page | URL |
+| --- | --- |
+| Anime | `/anime/?a=21-one-piece` |
+| Episode | `/anime/episode/?a=21-one-piece&ep=5` |
+| List | `/lists/view/?id=<listId>` |
+| Profile | `/u/?u=<username>` |
+
+Always build these links with the helpers in `src/lib/routes.ts`.
 
 ## Checks
 
 ```bash
 npm run lint
-npm run build
+npm run build      # static export → out/
+npm run preview    # wrangler pages dev (out/ + /api functions)
 ```

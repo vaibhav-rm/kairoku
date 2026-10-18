@@ -1,19 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { use, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { getAnime, getAnimeEpisodes } from "@/lib/anime-api";
-import { animeSlug, malIdFromSlug } from "@/lib/utils";
+import { malIdFromSlug } from "@/lib/utils";
+import { animeHref, episodeHref } from "@/lib/routes";
 import type { Anime, Episode } from "@/types";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/hooks/use-mounted";
 import { Stars, Textarea, Skeleton, EmptyState } from "@/components/ui";
 
-export default function EpisodePage({ params }: { params: Promise<{ slug: string; episode: string }> }) {
-  const { slug, episode } = use(params);
-  const epNum = parseInt(episode, 10);
+function EpisodeView() {
+  const search = useSearchParams();
+  const slug = search.get("a") || "";
+  const epNum = parseInt(search.get("ep") || "", 10);
   const malId = malIdFromSlug(slug);
   const router = useRouter();
   const {
@@ -66,12 +68,12 @@ export default function EpisodePage({ params }: { params: Promise<{ slug: string
   if (!malId || isNaN(epNum)) return <div className="pt-10"><EmptyState title="Episode not found." body="That episode doesn't exist." /></div>;
   if (!anime || !ep) return <div className="space-y-3 pt-6"><Skeleton className="h-8 w-64" /><Skeleton className="h-40" /></div>;
 
-  const back = `/anime/${animeSlug(anime.malId, anime.title)}`;
+  const back = animeHref(anime.malId, anime.title);
   const total = anime.episodes ?? null;
   const watched = isWatched(anime.malId, ep.number);
   const prev = ep.number > 1 ? ep.number - 1 : null;
   const next = total ? (ep.number < total ? ep.number + 1 : null) : ep.number + 1;
-  const epHref = (n: number) => `/anime/${animeSlug(anime.malId, anime.title)}/episode/${n}`;
+  const epHref = (n: number) => episodeHref(anime.malId, anime.title, n);
 
   const storedNote = getEpisodeNote(anime.malId, ep.number);
   const noteDirty = note !== storedNote;
@@ -160,5 +162,20 @@ export default function EpisodePage({ params }: { params: Promise<{ slug: string
         )}
       </div>
     </div>
+  );
+}
+
+export default function EpisodePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-3 pt-6">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-40" />
+        </div>
+      }
+    >
+      <EpisodeView />
+    </Suspense>
   );
 }

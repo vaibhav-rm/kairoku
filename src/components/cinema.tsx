@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { ArrowRight, Play } from "lucide-react";
 import type { Anime } from "@/types";
-import { animeSlug } from "@/lib/utils";
+import { animeHref } from "@/lib/routes";
 import { ProgressBar } from "./ui";
 import { SafeImage } from "./safe-image";
 
@@ -141,7 +141,6 @@ export function ShowtimeRow({
 
 /* Ranked poster — Top-10 style with giant outlined number. */
 export function RankCard({ anime, rank }: { anime: Anime; rank: number }) {
-  const slug = animeSlug(anime.malId, anime.title);
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -150,7 +149,7 @@ export function RankCard({ anime, rank }: { anime: Anime; rank: number }) {
       transition={{ duration: 0.4 }}
       className="w-[200px] shrink-0 snap-start sm:w-[220px]"
     >
-      <Link href={`/anime/${slug}`} className="group flex items-end" aria-label={`#${rank}: ${anime.title}`}>
+      <Link href={animeHref(anime.malId, anime.title)} className="group flex items-end" aria-label={`#${rank}: ${anime.title}`}>
         <span aria-hidden className="outline-num serif -mr-4 mb-1 shrink-0 text-[92px] font-semibold leading-[0.8] sm:text-[110px]">
           {rank}
         </span>

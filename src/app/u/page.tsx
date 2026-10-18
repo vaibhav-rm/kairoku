@@ -1,18 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { use, useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Heart } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/hooks/use-mounted";
-import { animeSlug } from "@/lib/utils";
+import { animeHref, listHref } from "@/lib/routes";
 import { EmptyState, Skeleton, StarsDisplay } from "@/components/ui";
 import { SafeImage } from "@/components/safe-image";
 
 const TABS = ["Overview", "Episodes", "Reviews", "Anime", "Lists"] as const;
 
-export default function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
-  const { username } = use(params);
+function Profile() {
+  const username = useSearchParams().get("u") || "";
   const { user, library, episodeData, reviews, lists, toggleLikeReview } = useStore();
   const mounted = useMounted();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Overview");
@@ -148,7 +149,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             {library.filter((e) => e.currentEpisode > 0).map((e) => (
               <div key={e.animeId} className="rounded-2xl border border-white/10 bg-[#171412] p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <Link href={`/anime/${animeSlug(e.animeId, e.anime?.title || "")}`} className="font-medium text-zinc-100 hover:text-white">{e.anime?.title}</Link>
+                  <Link href={animeHref(e.animeId, e.anime?.title)} className="font-medium text-zinc-100 hover:text-white">{e.anime?.title}</Link>
                   <span className="shrink-0 text-xs tabular-nums text-zinc-500">Ep {e.currentEpisode}{e.totalEpisodes ? ` / ${e.totalEpisodes}` : ""}</span>
                 </div>
                 <div className="mt-2 h-1.5 rounded-full bg-white/10">
@@ -177,7 +178,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         {tab === "Anime" && (
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
             {library.map((e) => (
-              <Link key={e.animeId} href={`/anime/${animeSlug(e.animeId, e.anime?.title || "")}`}>
+              <Link key={e.animeId} href={animeHref(e.animeId, e.anime?.title)}>
                 <SafeImage src={e.anime?.coverImage} alt={e.anime?.title} className="aspect-[2/3] w-full rounded-xl border border-white/10 object-cover" loading="lazy" />
               </Link>
             ))}
@@ -187,7 +188,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         {tab === "Lists" && (
           <div className="grid gap-3 sm:grid-cols-2">
             {lists.map((l) => (
-              <Link key={l.id} href={`/lists/${l.id}`} className="rounded-2xl border border-white/10 bg-[#171412] p-5 hover:bg-white/[0.04]">
+              <Link key={l.id} href={listHref(l.id)} className="rounded-2xl border border-white/10 bg-[#171412] p-5 hover:bg-white/[0.04]">
                 <p className="serif text-lg text-zinc-50">{l.name}</p>
                 <p className="text-xs text-zinc-500">{l.animeIds.length} titles</p>
               </Link>
@@ -197,5 +198,20 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         )}
       </div>
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-4 pt-4">
+          <Skeleton className="h-20 w-2/3" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      }
+    >
+      <Profile />
+    </Suspense>
   );
 }

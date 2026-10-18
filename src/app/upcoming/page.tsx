@@ -7,7 +7,8 @@ import { CalendarClock, Play } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/hooks/use-mounted";
 import { useNow } from "@/hooks/use-now";
-import { animeSlug, countdown } from "@/lib/utils";
+import { countdown } from "@/lib/utils";
+import { animeHref, episodeHref } from "@/lib/routes";
 import { airingWatchingCount, buildSchedule, type Schedule } from "@/lib/airing";
 import { EmptyState, Skeleton } from "@/components/ui";
 import { SafeImage } from "@/components/safe-image";
@@ -138,7 +139,7 @@ export default function UpcomingPage() {
               <h2 className="serif text-xl text-zinc-100">{group.label}</h2>
               <ul className="mt-3 divide-y divide-white/[0.06] overflow-hidden rounded-2xl border border-white/10 bg-[#141110]">
                 {group.items.map((item) => {
-                  const href = `/anime/${animeSlug(item.anime.malId, item.anime.title)}`;
+                  const href = animeHref(item.anime.malId, item.anime.title);
                   return (
                     <li key={`${item.anime.malId}-${item.episode.number}`} className="flex items-center gap-3 p-3 pr-4 transition hover:bg-white/[0.04]">
                       <Link href={href} className="relative shrink-0">
@@ -172,7 +173,7 @@ export default function UpcomingPage() {
                           {countdown(item.airsAt, now)}
                         </p>
                         <Link
-                          href={`${href}/episode/${item.episode.number}`}
+                          href={episodeHref(item.anime.malId, item.anime.title, item.episode.number)}
                           className="mt-1 inline-flex items-center gap-1 text-[11px] text-zinc-500 hover:text-white"
                         >
                           <Play size={10} fill="currentColor" /> Episode page
@@ -193,7 +194,7 @@ export default function UpcomingPage() {
           <p className="mt-1 text-xs text-zinc-500">Missed the drop? These are waiting for you.</p>
           <ul className="mt-3 divide-y divide-white/[0.06] overflow-hidden rounded-2xl border border-white/10 bg-[#141110]">
             {recent.map((item) => {
-              const href = `/anime/${animeSlug(item.anime.malId, item.anime.title)}/episode/${item.episode.number}`;
+              const href = episodeHref(item.anime.malId, item.anime.title, item.episode.number);
               return (
                 <li key={`${item.anime.malId}-${item.episode.number}`}>
                   <Link href={href} className="flex items-center gap-3 p-3 pr-4 transition hover:bg-white/[0.04]">

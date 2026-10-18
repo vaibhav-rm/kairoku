@@ -312,10 +312,16 @@ function mapJikan(a: JikanAnime): Anime {
   };
 }
 
-/** Low-level same-origin proxy call (cached server-side, stale-on-429). */
+// `next dev` has no Pages Function to serve /api/jikan, so hit the upstream
+// directly there (Jikan is CORS-permissive; a browser block just falls through
+// to the Kitsu fallback). Production always uses the same-origin Function.
+const JIKAN_BASE =
+  process.env.NODE_ENV === "development" ? "https://api.jikan.moe/v4" : "/api/jikan";
+
+/** Low-level provider call (same-origin Function in prod, upstream in dev). */
 export async function jikan<T>(path: string): Promise<T> {
   await throttle();
-  const r = await fetch(`/api/jikan${path}`);
+  const r = await fetch(`${JIKAN_BASE}${path}`);
   if (r.status === 404) throw new NotFoundError(`proxy 404 ${path}`);
   if (!r.ok) throw new Error(`proxy ${r.status}`);
   return (await r.json()) as T;

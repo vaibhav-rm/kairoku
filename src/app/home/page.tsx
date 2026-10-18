@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/hooks/use-mounted";
-import { animeSlug, greeting, timeUntil } from "@/lib/utils";
+import { greeting, timeUntil } from "@/lib/utils";
+import { animeHref, episodeHref, profileHref } from "@/lib/routes";
 import { ContinueCard } from "@/components/anime-cards";
 import { RankCard, ShowtimeRow, Spotlight } from "@/components/cinema";
 import { EmptyState, Skeleton } from "@/components/ui";
@@ -92,9 +93,9 @@ export default function HomePage() {
           progressTotal={feature.totalEpisodes ?? feature.anime.episodes}
           progressLabel={`Episode ${feature.currentEpisode}${feature.totalEpisodes ? ` of ${feature.totalEpisodes}` : ""}`}
           countdown={feature.anime.nextEpisode ? `Next: Ep ${feature.anime.nextEpisode.number} · ${timeUntil(feature.anime.nextEpisode.airsAt)}` : undefined}
-          primaryHref={`/anime/${animeSlug(feature.anime.malId, feature.anime.title)}/episode/${feature.currentEpisode + 1}`}
+          primaryHref={episodeHref(feature.anime.malId, feature.anime.title, feature.currentEpisode + 1)}
           primaryLabel={`Continue — Episode ${feature.currentEpisode + 1}`}
-          secondaryHref={`/anime/${animeSlug(feature.anime.malId, feature.anime.title)}`}
+          secondaryHref={animeHref(feature.anime.malId, feature.anime.title)}
           secondaryLabel="Story details"
         />
       ) : fallback ? (
@@ -102,7 +103,7 @@ export default function HomePage() {
           anime={fallback}
           kicker="Premiere · Recommended for you"
           meta={[fallback.year, fallback.type, fallback.status].filter(Boolean).join(" · ")}
-          primaryHref={`/anime/${animeSlug(fallback.malId, fallback.title)}`}
+          primaryHref={animeHref(fallback.malId, fallback.title)}
           primaryLabel="View story"
           secondaryHref="/discover"
           secondaryLabel="More premieres"
@@ -139,7 +140,7 @@ export default function HomePage() {
                   title={e.anime?.title || ""}
                   line={`Episode ${e.anime?.nextEpisode?.number ?? e.currentEpisode + 1}`}
                   countdown={e.anime?.nextEpisode ? timeUntil(e.anime.nextEpisode.airsAt) : "Soon"}
-                  href={`/anime/${animeSlug(e.animeId, e.anime?.title || "")}`}
+                  href={animeHref(e.animeId, e.anime?.title)}
                 />
               ))}
             </div>
@@ -178,7 +179,7 @@ export default function HomePage() {
                 </div>
               ))}
             </dl>
-            <Link href={`/u/${user.username}`} className="mt-5 block rounded-full border border-white/15 py-2.5 text-center text-sm text-zinc-100 transition hover:bg-white/5">
+            <Link href={profileHref(user.username)} className="mt-5 block rounded-full border border-white/15 py-2.5 text-center text-sm text-zinc-100 transition hover:bg-white/5">
               Full statistics
             </Link>
           </div>

@@ -7,6 +7,7 @@ import { BellRing } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/hooks/use-mounted";
 import { Button, EmptyState } from "@/components/ui";
+import { animeHrefFromSlug } from "@/lib/routes";
 
 export default function NotificationsPage() {
   const { user, ready, notifications, markAllRead } = useStore();
@@ -39,7 +40,7 @@ export default function NotificationsPage() {
                 <p className="text-sm font-medium text-zinc-100">{n.title}</p>
                 <p className="text-xs text-zinc-500">{n.body} · {new Date(n.createdAt).toLocaleString()}</p>
                 {n.animeId && (
-                  <Link href={`/anime/${n.animeId}`} className="mt-2 inline-block rounded-full bg-[#e4572e] px-4 py-1.5 text-xs font-semibold text-white">
+                  <Link href={animeHrefFromSlug(n.animeId)} className="mt-2 inline-block rounded-full bg-[#e4572e] px-4 py-1.5 text-xs font-semibold text-white">
                     Open series
                   </Link>
                 )}
