@@ -1,7 +1,6 @@
 # Kairoku — Remember every story
 
 A personal anime tracking, rating, and recommendation platform
-(Letterboxd × MyAnimeList) with a live airing schedule.
 Next.js 16 · React 19 · TypeScript · Tailwind v4 · Firebase · Jikan API.
 
 ## Features
