@@ -8,6 +8,13 @@ import { motion, AnimatePresence } from "motion/react";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/hooks/use-mounted";
 import { cn } from "@/lib/utils";
+import { profileHref } from "@/lib/routes";
+
+/** Compare paths ignoring a trailing slash (we run with `trailingSlash: true`). */
+const samePath = (a: string, b: string) => {
+  const norm = (p: string) => (p.length > 1 ? p.replace(/\/+$/, "") : "/");
+  return norm(a) === norm(b);
+};
 
 const LINKS = [
   { href: "/", label: "Home", icon: Home },
@@ -110,7 +117,7 @@ export function TopNav() {
           )}
           {u ? (
             <Link
-              href={`/u/${u.username}`}
+              href={profileHref(u.username)}
               className="grid size-9 place-items-center rounded-full bg-gradient-to-br from-[#e4572e] to-amber-500 text-sm font-bold text-white"
               aria-label="Profile"
             >
@@ -142,13 +149,13 @@ export function BottomNav() {
     { href: "/discover", label: "Discover", icon: Compass },
     { href: "/upcoming", label: "Upcoming", icon: CalendarClock },
     { href: "/library", label: "Library", icon: Library },
-    { href: u ? `/u/${u.username}` : "/login", label: "Profile", icon: Search },
+    { href: u ? profileHref(u.username) : "/login", label: "Profile", icon: Search },
   ];
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0f0e0c]/95 backdrop-blur-xl md:hidden" aria-label="Mobile">
       <div className="grid grid-cols-5">
         {items.map((l) => {
-          const active = path === l.href;
+          const active = samePath(path, l.href.split("?")[0]);
           return (
             <Link key={l.label} href={l.href} className={cn("flex flex-col items-center gap-1 py-2.5 text-[10px]", active ? "text-[#e4572e]" : "text-zinc-500")}>
               <l.icon size={20} />

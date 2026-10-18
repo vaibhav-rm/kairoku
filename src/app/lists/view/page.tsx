@@ -1,16 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { use, useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft, Globe, Lock, Plus, Search, Trash2, X } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { animeSlug } from "@/lib/utils";
+import { animeHref } from "@/lib/routes";
 import type { Anime } from "@/types";
-import { Button, EmptyState, Input } from "@/components/ui";
+import { Button, EmptyState, Input, Skeleton } from "@/components/ui";
 import { SafeImage } from "@/components/safe-image";
 
-export default function ListDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+function ListDetail() {
+  const id = useSearchParams().get("id") || "";
   const { lists, library, saveList, addToList, removeFromList } = useStore();
   const [adding, setAdding] = useState(false);
   const [q, setQ] = useState("");
@@ -121,7 +122,7 @@ export default function ListDetail({ params }: { params: Promise<{ id: string }>
         )}
         {items.map((a) => (
           <div key={a.malId} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-[#171412] p-3">
-            <Link href={`/anime/${animeSlug(a.malId, a.title)}`} className="flex min-w-0 flex-1 items-center gap-4">
+            <Link href={animeHref(a.malId, a.title)} className="flex min-w-0 flex-1 items-center gap-4">
               <SafeImage src={a.coverImage} alt="" className="h-16 w-11 shrink-0 rounded-lg object-cover" />
               <span className="min-w-0">
                 <span className="block truncate font-medium text-zinc-100">{a.title}</span>
@@ -145,5 +146,20 @@ export default function ListDetail({ params }: { params: Promise<{ id: string }>
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function ListDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-3 pt-6">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-40" />
+        </div>
+      }
+    >
+      <ListDetail />
+    </Suspense>
   );
 }

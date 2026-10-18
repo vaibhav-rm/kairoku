@@ -4,13 +4,13 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { Play, Plus, Check } from "lucide-react";
 import type { Anime, LibraryEntry } from "@/types";
-import { animeSlug, timeUntil } from "@/lib/utils";
+import { timeUntil } from "@/lib/utils";
+import { animeHref, episodeHref } from "@/lib/routes";
 import { ProgressBar } from "./ui";
 import { SafeImage } from "./safe-image";
 import { useStore } from "@/lib/store";
 
 export function AnimeCard({ anime, index = 0 }: { anime: Anime; index?: number }) {
-  const slug = animeSlug(anime.malId, anime.title);
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -18,7 +18,7 @@ export function AnimeCard({ anime, index = 0 }: { anime: Anime; index?: number }
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.4, delay: Math.min(index * 0.04, 0.3) }}
     >
-      <Link href={`/anime/${slug}`} className="group block" aria-label={anime.title}>
+      <Link href={animeHref(anime.malId, anime.title)} className="group block" aria-label={anime.title}>
         <div className="card-lift relative aspect-[2/3] overflow-hidden rounded-xl border border-white/10 bg-white/5">
           <SafeImage
             src={anime.coverImage}
@@ -56,7 +56,6 @@ export function AnimeCard({ anime, index = 0 }: { anime: Anime; index?: number }
 
 export function ContinueCard({ entry }: { entry: LibraryEntry }) {
   const anime = entry.anime!;
-  const slug = animeSlug(anime.malId, anime.title);
   const { setProgress } = useStore();
   const next = entry.currentEpisode + 1;
   const total = entry.totalEpisodes ?? anime.episodes ?? null;
@@ -91,7 +90,7 @@ export function ContinueCard({ entry }: { entry: LibraryEntry }) {
             +
           </button>
           <Link
-            href={`/anime/${slug}/episode/${next}`}
+            href={episodeHref(anime.malId, anime.title, next)}
             className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#e4572e] px-4 py-2 text-xs font-semibold text-white hover:bg-[#cf4a24]"
           >
             <Play size={12} fill="currentColor" /> Continue

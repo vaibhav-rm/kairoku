@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/hooks/use-mounted";
 import type { LibraryStatus } from "@/types";
-import { animeSlug } from "@/lib/utils";
+import { animeHref } from "@/lib/routes";
 import { Button, EmptyState, StarsDisplay, ProgressBar } from "@/components/ui";
 import { SafeImage } from "@/components/safe-image";
 
@@ -72,7 +72,7 @@ export default function LibraryPage() {
             <div key={e.animeId} className="flex gap-3 rounded-2xl border border-white/10 bg-[#171412] p-3">
               <SafeImage src={e.anime?.coverImage} alt="" className="h-28 w-20 shrink-0 rounded-xl object-cover" loading="lazy" />
               <div className="min-w-0 flex-1">
-                <Link href={`/anime/${animeSlug(e.animeId, e.anime?.title || "")}`} className="line-clamp-1 font-medium text-zinc-100 hover:underline">
+                <Link href={animeHref(e.animeId, e.anime?.title)} className="line-clamp-1 font-medium text-zinc-100 hover:underline">
                   {e.anime?.title}
                 </Link>
                 <p className="text-xs capitalize text-zinc-500">{e.status.replace(/_/g, " ")} · Ep {e.currentEpisode}{e.totalEpisodes ? `/${e.totalEpisodes}` : ""}</p>

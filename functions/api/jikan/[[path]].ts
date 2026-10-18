@@ -1,4 +1,9 @@
-import { NextResponse, type NextRequest } from "next/server";
+// Cloudflare Pages Function — same-origin proxy for the anime metadata
+// provider. Ported from the former Next.js route handler so the statically
+// exported app can still reach Jikan without browser CORS issues.
+//
+// Route: GET /api/jikan/<...path>
+// (This file's directory is the route: functions/api/jikan/[[path]].ts)
 
 const UPSTREAM = "https://api.jikan.moe/v4";
 const TTL = 30 * 60 * 1000; // 30 min fresh
@@ -13,6 +18,9 @@ interface Entry {
   at: number;
   body: unknown;
 }
+
+// Best-effort in-isolate cache. The client also caches responses in
+// localStorage, so a cold isolate just means one extra upstream fetch.
 const cache = new Map<string, Entry>();
 
 function prune() {
@@ -21,25 +29,32 @@ function prune() {
   for (const [k] of oldest.slice(0, cache.size - MAX_ENTRIES)) cache.delete(k);
 }
 
-// Same-origin proxy for the anime metadata provider.
-// Why: browsers hit CORS failures / blocks against the public API;
-// server-to-server has none. Serves fresh cache instantly and falls
-// back to stale cache on upstream 429s/errors, so the UI never breaks.
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
-) {
-  const { path } = await params;
-  if (!path || path.length === 0) {
-    return NextResponse.json({ error: "missing path" }, { status: 400 });
+function json(body: unknown, init?: ResponseInit): Response {
+  const headers = new Headers(init?.headers);
+  headers.set("Content-Type", "application/json");
+  return new Response(JSON.stringify(body), { ...init, headers });
+}
+
+interface Context {
+  request: Request;
+  params: { path?: string | string[] };
+}
+
+export async function onRequestGet(context: Context): Promise<Response> {
+  const raw = context.params.path;
+  const path = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  if (path.length === 0) {
+    return json({ error: "missing path" }, { status: 400 });
   }
-  const key = `/${path.join("/")}${req.nextUrl.search}`;
+
+  const key = `/${path.join("/")}${new URL(context.request.url).search}`;
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < TTL) {
-    return NextResponse.json(hit.body, {
+    return json(hit.body, {
       headers: { "x-kairoku-cache": "hit", "Cache-Control": CACHE_HEADERS },
     });
   }
+
   try {
     let upstream: Response | null = null;
     let lastErr = "";
@@ -57,32 +72,33 @@ export async function GET(
       }
     }
     if (!upstream) throw new Error(lastErr || "upstream unreachable");
+
     if (upstream.status === 429 && hit) {
-      return NextResponse.json(hit.body, { headers: { "x-kairoku-cache": "stale-429" } });
+      return json(hit.body, { headers: { "x-kairoku-cache": "stale-429" } });
     }
     // Legit "no such record": pass it through so callers can tell a missing
     // title apart from a dead provider.
     if (upstream.status === 404) {
       const body = await upstream.json().catch(() => ({ error: "not found" }));
-      return NextResponse.json(body, {
+      return json(body, {
         status: 404,
         headers: { "x-kairoku-cache": "miss-404" },
       });
     }
     if (!upstream.ok) throw new Error(`upstream ${upstream.status}`);
+
     const body = (await upstream.json()) as unknown;
     cache.set(key, { at: Date.now(), body });
     prune();
-    return NextResponse.json(body, {
+    return json(body, {
       headers: { "x-kairoku-cache": "miss", "Cache-Control": CACHE_HEADERS },
     });
   } catch (e) {
     const reason = e instanceof Error ? e.message : String(e);
-    console.error(`[jikan-proxy] ${key} failed: ${reason}`);
     if (hit) {
-      return NextResponse.json(hit.body, { headers: { "x-kairoku-cache": "stale-error" } });
+      return json(hit.body, { headers: { "x-kairoku-cache": "stale-error" } });
     }
-    return NextResponse.json(
+    return json(
       { error: "anime provider unreachable", reason },
       { status: 502 }
     );

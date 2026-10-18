@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Search as SearchIcon } from "lucide-react";
 import { searchAnime } from "@/lib/anime-api";
-import { animeSlug } from "@/lib/utils";
+import { animeHref } from "@/lib/routes";
 import type { Anime } from "@/types";
 import { Badge, Skeleton } from "@/components/ui";
 import { SafeImage } from "@/components/safe-image";
@@ -36,7 +36,7 @@ function SearchInner() {
     return () => clearTimeout(t);
   }, [q]);
 
-  const go = (a: Anime) => router.push(`/anime/${animeSlug(a.malId, a.title)}`);
+  const go = (a: Anime) => router.push(animeHref(a.malId, a.title));
 
   return (
     <div className="pt-4">

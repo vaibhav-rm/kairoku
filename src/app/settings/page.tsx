@@ -4,10 +4,11 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/hooks/use-mounted";
+import { clearApiCache } from "@/lib/anime-api";
 import { Button, Input, Textarea } from "@/components/ui";
 
 export default function SettingsPage() {
-  const { user, ready, updateProfile, signOut, library, episodeData, watched, reviews, lists } = useStore();
+  const { user, ready, updateProfile, signOut, library, episodeData, watched, reviews, lists, showToast } = useStore();
   const mounted = useMounted();
   const router = useRouter();
 
@@ -56,6 +57,24 @@ export default function SettingsPage() {
       <section className="rounded-2xl border border-white/10 bg-[#171412] p-5">
         <h2 className="font-semibold text-zinc-100">Privacy</h2>
         <p className="mt-1 text-sm text-zinc-400">Your library, episode progress, and ratings are private by default. Reviews you publish are visible to others — ratings and watch progress never are.</p>
+      </section>
+
+      <section className="rounded-2xl border border-white/10 bg-[#171412] p-5">
+        <h2 className="font-semibold text-zinc-100">Cached anime data</h2>
+        <p className="mt-1 text-sm text-zinc-400">
+          Browse lists, episode lists, and search results are cached on this device (up to a day) so we don&apos;t re-fetch what you&apos;ve already seen. Clear it if something looks out of date.
+        </p>
+        <div className="mt-3">
+          <Button
+            variant="outline"
+            onClick={() => {
+              const n = clearApiCache();
+              showToast(n ? `Cleared ${n} cached ${n === 1 ? "entry" : "entries"}.` : "Cache already empty.");
+            }}
+          >
+            Clear cached anime data
+          </Button>
+        </div>
       </section>
 
       <section className="rounded-2xl border border-white/10 bg-[#171412] p-5">

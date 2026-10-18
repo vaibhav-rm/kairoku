@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { Sparkles } from "lucide-react";
 import type { Recommendation } from "@/types";
-import { animeSlug } from "@/lib/utils";
+import { animeHref } from "@/lib/routes";
 import { SafeImage } from "./safe-image";
 import { Skeleton } from "./ui";
 
@@ -25,7 +25,7 @@ export function RecommendationCard({
       transition={{ duration: 0.4, delay: Math.min(index * 0.04, 0.3) }}
       className="w-[150px] shrink-0 snap-start sm:w-[170px]"
     >
-      <Link href={`/anime/${animeSlug(a.malId, a.title)}`} className="group block" aria-label={a.title}>
+      <Link href={animeHref(a.malId, a.title)} className="group block" aria-label={a.title}>
         <div className="card-lift relative aspect-[2/3] overflow-hidden rounded-xl border border-white/10 bg-white/5">
           <SafeImage
             src={a.coverImage}
