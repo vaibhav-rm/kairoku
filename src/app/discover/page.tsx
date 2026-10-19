@@ -58,10 +58,10 @@ export default function DiscoverPage() {
   if (!data) {
     return (
       <div className="space-y-8 pt-4">
-        <Skeleton className="h-[380px] w-full !rounded-3xl" />
-        <div className="flex gap-4">
+        <Skeleton className="h-[380px] w-full !rounded-3xl sm:h-[420px]" />
+        <div className="flex gap-4 overflow-hidden">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-[2/3] w-[150px] shrink-0" />
+            <Skeleton key={i} className="aspect-[2/3] w-[40%] max-w-[170px] shrink-0" />
           ))}
         </div>
       </div>

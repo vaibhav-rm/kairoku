@@ -12,9 +12,11 @@ import { Skeleton } from "./ui";
 export function RecommendationCard({
   rec,
   index = 0,
+  className,
 }: {
   rec: Recommendation;
   index?: number;
+  className?: string;
 }) {
   const a = rec.anime;
   return (
@@ -23,7 +25,7 @@ export function RecommendationCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.4, delay: Math.min(index * 0.04, 0.3) }}
-      className="w-[150px] shrink-0 snap-start sm:w-[170px]"
+      className={className ?? "w-[150px] shrink-0 snap-start sm:w-[170px]"}
     >
       <Link href={animeHref(a.malId, a.title)} className="group block" aria-label={a.title}>
         <div className="card-lift relative aspect-[2/3] overflow-hidden rounded-xl border border-white/10 bg-white/5">
@@ -86,9 +88,9 @@ export function RecommendationSkeleton() {
   return (
     <div className="space-y-3">
       <Skeleton className="h-6 w-40" />
-      <div className="flex gap-4">
+      <div className="flex gap-4 overflow-hidden">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="aspect-[2/3] w-[150px] shrink-0 sm:w-[170px]" />
+          <Skeleton key={i} className="aspect-[2/3] w-[40%] max-w-[170px] shrink-0" />
         ))}
       </div>
     </div>

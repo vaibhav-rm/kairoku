@@ -154,7 +154,7 @@ export default function UpcomingPage() {
                         <Link href={href} className="block truncate text-sm font-medium text-zinc-100 hover:text-white">
                           {item.anime.title}
                         </Link>
-                        <p className="text-xs text-zinc-500">
+                        <p className="truncate text-xs text-zinc-500">
                           Episode {item.episode.number}
                           {item.episode.title && item.episode.title !== `Episode ${item.episode.number}` ? ` — ${item.episode.title}` : ""}
                         </p>
@@ -174,7 +174,7 @@ export default function UpcomingPage() {
                         </p>
                         <Link
                           href={episodeHref(item.anime.malId, item.anime.title, item.episode.number)}
-                          className="mt-1 inline-flex items-center gap-1 text-[11px] text-zinc-500 hover:text-white"
+                          className="mt-1 inline-flex items-center gap-1 rounded-full py-1.5 pl-1 pr-2 text-[11px] text-zinc-500 hover:text-white"
                         >
                           <Play size={10} fill="currentColor" /> Episode page
                         </Link>

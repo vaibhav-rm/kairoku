@@ -48,8 +48,11 @@ export default function HomePage() {
   if (!mounted || !ready || !user) {
     return (
       <div className="space-y-4 pt-6">
-        <Skeleton className="h-[420px] w-full !rounded-3xl" />
-        <div className="flex gap-3"><Skeleton className="h-56 w-[300px]" /><Skeleton className="h-56 w-[300px]" /></div>
+        <Skeleton className="h-[380px] w-full !rounded-3xl sm:h-[420px]" />
+        <div className="flex gap-3 overflow-hidden">
+          <Skeleton className="h-56 w-[80%] max-w-[300px] shrink-0" />
+          <Skeleton className="h-56 w-[80%] max-w-[300px] shrink-0" />
+        </div>
       </div>
     );
   }
@@ -117,7 +120,7 @@ export default function HomePage() {
       )}
 
       {/* SHOWTIMES + CONTINUE RAIL */}
-      <section className="grid gap-10 lg:grid-cols-[1fr_360px]">
+      <section className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div>
           <div className="mb-2 flex items-center justify-between">
             <h2 className="serif text-2xl text-zinc-50">Coming up</h2>

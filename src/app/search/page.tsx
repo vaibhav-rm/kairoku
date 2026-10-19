@@ -65,7 +65,7 @@ function SearchInner() {
               setQ("");
             }
           }}
-          placeholder="Title, Japanese title, genre…  ( ↑↓ navigate · Enter open · Esc clear )"
+          placeholder="Title, Japanese title, genre…"
           aria-label="Search anime"
           role="combobox"
           aria-expanded={results.length > 0}
@@ -73,6 +73,7 @@ function SearchInner() {
           className="w-full rounded-2xl border border-white/10 bg-white/[0.06] py-3.5 pl-11 pr-4 text-base text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-[#e4572e]/60"
         />
       </div>
+      <p className="mt-2 hidden text-xs text-zinc-500 sm:block">↑↓ navigate · Enter open · Esc clear</p>
 
       {loading && (
         <div className="mt-6 space-y-3">
@@ -111,8 +112,9 @@ function SearchInner() {
                   ))}
                 </div>
               </div>
-              <div className="hidden shrink-0 sm:block" onClick={(e) => e.stopPropagation()}>
-                <QuickAdd anime={a} />
+              <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                <span className="hidden sm:block"><QuickAdd anime={a} /></span>
+                <span className="sm:hidden"><QuickAdd anime={a} compact /></span>
               </div>
             </div>
           </li>
@@ -124,7 +126,7 @@ function SearchInner() {
           <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500">Popular right now</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             {["Frieren", "One Piece", "Dandadan", "Vinland Saga", "Mushishi", "Jujutsu"].map((t) => (
-              <Link key={t} href={`/search?q=${encodeURIComponent(t)}`} className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-300 hover:border-[#e4572e]/50 hover:text-white">
+              <Link key={t} href={`/search?q=${encodeURIComponent(t)}`} className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-300 hover:border-[#e4572e]/50 hover:text-white max-sm:min-h-11 max-sm:inline-flex max-sm:items-center">
                 {t}
               </Link>
             ))}

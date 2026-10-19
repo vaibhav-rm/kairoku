@@ -134,11 +134,11 @@ function AnimeDetail() {
             {anime.titleJapanese}
           </span>
         )}
-        <div className="relative mx-auto grid max-w-6xl gap-8 px-4 pb-10 pt-16 sm:px-6 md:grid-cols-[220px_1fr] md:pt-24">
+        <div className="relative mx-auto grid max-w-6xl grid-cols-1 gap-5 px-4 pb-10 pt-10 sm:gap-8 sm:px-6 sm:pt-16 md:grid-cols-[220px_minmax(0,1fr)] md:pt-24">
           <SafeImage
             src={anime.coverImage}
             alt={anime.title}
-            className="card-lift w-40 rounded-2xl border border-white/20 shadow-2xl md:w-full"
+            className="card-lift w-28 rounded-2xl border border-white/20 shadow-2xl sm:w-40 md:w-full"
           />
           <div>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">
@@ -154,7 +154,7 @@ function AnimeDetail() {
             <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
               {anime.score != null && (
                 <span className="flex items-baseline gap-2">
-                  <span className="serif text-5xl tabular-nums text-amber-300">{anime.score.toFixed(2)}</span>
+                  <span className="serif text-4xl tabular-nums text-amber-300 sm:text-5xl">{anime.score.toFixed(2)}</span>
                   <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">
                     Score{anime.scoredBy ? <><br />{(anime.scoredBy / 1000).toFixed(0)}k votes</> : null}
                   </span>
@@ -200,7 +200,7 @@ function AnimeDetail() {
                     <button
                       key={v}
                       onClick={() => setStatus(anime, v)}
-                      className={`rounded-full px-4 py-2 text-xs font-medium transition cursor-pointer ${entry.status === v ? "bg-[#e4572e] text-white" : "border border-white/12 text-zinc-300 hover:bg-white/10"}`}
+                      className={`rounded-full px-4 py-2 text-xs font-medium transition cursor-pointer max-sm:min-h-10 ${entry.status === v ? "bg-[#e4572e] text-white" : "border border-white/12 text-zinc-300 hover:bg-white/10"}`}
                     >
                       {label}
                     </button>
@@ -285,7 +285,7 @@ function AnimeDetail() {
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <Link
                     href={episodeHref(anime.malId, anime.title, upNext)}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-[#e4572e] px-4 py-2 text-xs font-semibold text-white hover:bg-[#cf4a24]"
+                    className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#e4572e] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#cf4a24]"
                   >
                     <Play size={12} fill="currentColor" /> Continue · Episode {upNext}
                   </Link>
@@ -311,7 +311,7 @@ function AnimeDetail() {
               <input type="checkbox" checked={rSpoiler} onChange={(e) => setRSpoiler(e.target.checked)} className="size-4 accent-[#e4572e]" />
               Contains spoilers
             </label>
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               <Button
                 onClick={() => {
                   if (!rBody.trim() && !rTitle.trim()) return;
@@ -337,7 +337,7 @@ function AnimeDetail() {
               {total && (
                 <Link
                   href={episodeHref(anime.malId, anime.title, upNext)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3.5 py-1.5 text-xs font-medium text-zinc-100 hover:bg-white/5"
+                  className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-white/15 px-3.5 py-1.5 text-xs font-medium text-zinc-100 hover:bg-white/5"
                 >
                   <Play size={12} fill="currentColor" /> Up next: Ep {upNext}
                 </Link>
@@ -409,7 +409,7 @@ function AnimeDetail() {
           {animeReviews.length === 0 ? (
             <p className="mt-3 text-sm text-zinc-500">No reviews yet. Yours could be the first one worth remembering.</p>
           ) : (
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               {animeReviews.map((r) => (
                 <article key={r.id} className="rounded-2xl border border-white/10 bg-[#171412] p-5">
                   <Stars value={r.rating} size={14} />

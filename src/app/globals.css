@@ -16,6 +16,8 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -24,6 +26,29 @@ body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Safety net for the odd wide poster rail; `clip` (unlike `hidden`)
+     doesn't turn the body into a scroll container, so sticky still works. */
+  overflow-x: clip;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ——— Mobile ergonomics ——— */
+
+/* iOS Safari zooms the whole page when a focused field is under 16px.
+   Keeps every form control readable and zoom-free on phones. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Kill the 300ms double-tap delay on controls. */
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
 }
 
 .font-serif, .serif {
@@ -149,6 +174,8 @@ body {
 
 .snap-row {
   scroll-snap-type: x mandatory;
+  /* Keep snapped cards clear of the page gutter. */
+  scroll-padding-left: 1rem;
 }
 
 :focus-visible {

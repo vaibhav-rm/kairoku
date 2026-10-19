@@ -34,11 +34,11 @@ export default function WatchlistPage() {
           />
         </div>
       ) : (
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((e) => (
             <div key={e.animeId} className="rounded-2xl border border-white/10 bg-[#171412] p-4">
               <div className="flex gap-3">
-                <SafeImage src={e.anime?.coverImage} alt="" className="h-24 w-16 rounded-xl object-cover" loading="lazy" />
+                <SafeImage src={e.anime?.coverImage} alt="" className="h-24 w-16 shrink-0 rounded-xl object-cover" loading="lazy" />
                 <div className="min-w-0">
                   <Link href={animeHref(e.animeId, e.anime?.title)} className="font-medium text-zinc-100 hover:underline">
                     {e.anime?.title}

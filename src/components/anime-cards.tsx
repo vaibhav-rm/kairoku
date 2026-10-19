@@ -60,7 +60,7 @@ export function ContinueCard({ entry }: { entry: LibraryEntry }) {
   const next = entry.currentEpisode + 1;
   const total = entry.totalEpisodes ?? anime.episodes ?? null;
   return (
-    <div className="card-lift group relative w-[300px] shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-[#171412] snap-start">
+    <div className="card-lift group relative w-[280px] shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-[#171412] snap-start sm:w-[300px]">
       <div className="relative h-36 overflow-hidden">
         <SafeImage src={anime.bannerImage || anime.coverImage} alt="" className="h-full w-full object-cover object-top opacity-80 transition duration-500 group-hover:scale-105" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#171412] via-[#171412]/40 to-transparent" />
@@ -76,7 +76,7 @@ export function ContinueCard({ entry }: { entry: LibraryEntry }) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setProgress(anime.malId, entry.currentEpisode - 1)}
-            className="grid size-8 place-items-center rounded-full border border-white/10 text-zinc-300 hover:bg-white/10 cursor-pointer"
+            className="grid size-9 place-items-center rounded-full border border-white/10 text-zinc-300 hover:bg-white/10 cursor-pointer"
             aria-label="Decrease episode"
           >
             −
@@ -84,14 +84,14 @@ export function ContinueCard({ entry }: { entry: LibraryEntry }) {
           <span className="text-sm tabular-nums text-zinc-200 w-8 text-center">{entry.currentEpisode}</span>
           <button
             onClick={() => setProgress(anime.malId, entry.currentEpisode + 1)}
-            className="grid size-8 place-items-center rounded-full border border-white/10 text-zinc-300 hover:bg-white/10 cursor-pointer"
+            className="grid size-9 place-items-center rounded-full border border-white/10 text-zinc-300 hover:bg-white/10 cursor-pointer"
             aria-label="Increase episode"
           >
             +
           </button>
           <Link
             href={episodeHref(anime.malId, anime.title, next)}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#e4572e] px-4 py-2 text-xs font-semibold text-white hover:bg-[#cf4a24]"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#e4572e] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#cf4a24]"
           >
             <Play size={12} fill="currentColor" /> Continue
           </Link>
@@ -106,16 +106,28 @@ export function ContinueCard({ entry }: { entry: LibraryEntry }) {
   );
 }
 
-export function QuickAdd({ anime }: { anime: Anime }) {
+export function QuickAdd({ anime, compact = false }: { anime: Anime; compact?: boolean }) {
   const { library, setStatus } = useStore();
   const inLib = library.some((e) => e.animeId === anime.malId);
   if (inLib)
-    return (
+    return compact ? (
+      <span aria-label={`${anime.title} is in your Kairoku`} className="grid size-9 place-items-center rounded-full bg-emerald-500/15 text-emerald-300">
+        <Check size={15} />
+      </span>
+    ) : (
       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-medium text-emerald-300">
         <Check size={12} /> In your Kairoku
       </span>
     );
-  return (
+  return compact ? (
+    <button
+      onClick={() => setStatus(anime, "watching")}
+      aria-label={`Add ${anime.title} to Kairoku`}
+      className="grid size-9 place-items-center rounded-full bg-white/10 text-zinc-100 hover:bg-[#e4572e] hover:text-white transition cursor-pointer"
+    >
+      <Plus size={15} />
+    </button>
+  ) : (
     <button
       onClick={() => setStatus(anime, "watching")}
       className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-zinc-100 hover:bg-[#e4572e] hover:text-white transition cursor-pointer"

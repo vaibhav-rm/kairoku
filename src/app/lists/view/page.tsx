@@ -41,7 +41,7 @@ function ListDetail() {
 
   return (
     <div className="mx-auto max-w-3xl pt-4">
-      <Link href="/lists" className="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white">
+      <Link href="/lists" className="inline-flex min-h-10 items-center gap-1.5 text-sm text-zinc-400 hover:text-white">
         <ArrowLeft size={15} /> Lists
       </Link>
       <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
@@ -92,7 +92,7 @@ function ListDetail() {
                 : "Nothing left to add from your library."}
             </p>
           ) : (
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {candidates.slice(0, 12).map((a) => (
                 <button
                   key={a.malId}
@@ -132,7 +132,7 @@ function ListDetail() {
             <button
               onClick={() => removeFromList(list.id, a.malId)}
               aria-label={`Remove ${a.title} from ${list.name}`}
-              className="grid size-8 shrink-0 place-items-center rounded-full text-zinc-500 hover:bg-white/10 hover:text-red-400 cursor-pointer"
+              className="grid size-9 shrink-0 place-items-center rounded-full text-zinc-500 hover:bg-white/10 hover:text-red-400 cursor-pointer"
             >
               <X size={15} />
             </button>
@@ -141,7 +141,7 @@ function ListDetail() {
       </div>
 
       <div className="mt-10 border-t border-white/10 pt-4">
-        <Link href="/lists" className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300">
+        <Link href="/lists" className="inline-flex min-h-9 items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300">
           <Trash2 size={12} /> Back to all lists
         </Link>
       </div>

@@ -98,7 +98,7 @@ export default function RecommendationsPage() {
           )}
 
           <section>
-            <div className="flex items-end justify-between">
+            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
               <h2 className="display serif text-3xl text-zinc-50 sm:text-4xl">
                 Handpicked for you
               </h2>
@@ -112,7 +112,7 @@ export default function RecommendationsPage() {
             <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
               {bundle.forYou.map((rec, i) => (
                 <div key={rec.anime.malId} className="w-full">
-                  <RecommendationCard rec={rec} index={i} />
+                  <RecommendationCard rec={rec} index={i} className="w-full" />
                 </div>
               ))}
             </div>
@@ -123,7 +123,7 @@ export default function RecommendationsPage() {
               <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#e4572e]">
                 あなたへ · Similar stories
               </p>
-              <div className="mt-2 flex items-end justify-between gap-4">
+              <div className="mt-2 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
                 <h2 className="display serif text-2xl text-zinc-50 sm:text-3xl">
                   {rail.reason}
                 </h2>

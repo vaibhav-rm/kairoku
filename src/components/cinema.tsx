@@ -53,12 +53,12 @@ export function Spotlight({
       </div>
       {/* letterbox */}
       <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-black/80 to-transparent" aria-hidden />
-      <div className="relative flex min-h-[420px] flex-col justify-end p-6 sm:min-h-[480px] sm:p-10">
+      <div className="relative flex min-h-[380px] flex-col justify-end p-5 sm:min-h-[480px] sm:p-10">
         <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.32em] text-[#e89a7c]">
           <span className="size-1.5 animate-pulse rounded-full bg-[#e4572e]" />
           {kicker}
         </p>
-        <h2 className="display serif mt-3 max-w-3xl text-5xl leading-[0.98] text-white sm:text-7xl">
+        <h2 className="display serif mt-3 max-w-3xl text-[2.6rem] leading-[0.98] text-white sm:text-7xl">
           {anime.title}
         </h2>
         {meta && (
@@ -78,14 +78,14 @@ export function Spotlight({
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href={primaryHref}
-            className="inline-flex items-center gap-2 rounded-full bg-[#e4572e] px-7 py-3 text-sm font-semibold text-white shadow-[0_8px_30px_-8px_rgba(228,87,46,0.7)] transition hover:bg-[#cf4a24] active:scale-[0.98]"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#e4572e] px-7 py-3 text-sm font-semibold text-white shadow-[0_8px_30px_-8px_rgba(228,87,46,0.7)] transition hover:bg-[#cf4a24] active:scale-[0.98] max-sm:w-full"
           >
             <Play size={15} fill="currentColor" /> {primaryLabel}
           </Link>
           {secondaryHref && (
             <Link
               href={secondaryHref}
-              className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/40 px-7 py-3 text-sm font-medium text-zinc-100 backdrop-blur transition hover:border-white/50"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/25 bg-black/40 px-7 py-3 text-sm font-medium text-zinc-100 backdrop-blur transition hover:border-white/50 max-sm:w-full"
             >
               {secondaryLabel} <ArrowRight size={15} />
             </Link>
@@ -147,10 +147,10 @@ export function RankCard({ anime, rank }: { anime: Anime; rank: number }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.4 }}
-      className="w-[200px] shrink-0 snap-start sm:w-[220px]"
+      className="w-[170px] shrink-0 snap-start sm:w-[220px]"
     >
       <Link href={animeHref(anime.malId, anime.title)} className="group flex items-end" aria-label={`#${rank}: ${anime.title}`}>
-        <span aria-hidden className="outline-num serif -mr-4 mb-1 shrink-0 text-[92px] font-semibold leading-[0.8] sm:text-[110px]">
+        <span aria-hidden className="outline-num serif -mr-4 mb-1 shrink-0 text-[84px] font-semibold leading-[0.8] sm:text-[110px]">
           {rank}
         </span>
         <span className="card-lift relative block aspect-[2/3] w-full overflow-hidden rounded-xl border border-white/10 bg-white/5">

@@ -25,7 +25,7 @@ export default function ListsPage() {
 
   return (
     <div className="mx-auto max-w-3xl pt-4">
-      <div className="flex items-end justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#e4572e]">リスト · Lists</p>
           <h1 className="serif mt-1 text-3xl text-zinc-50 sm:text-4xl">Collections of meaning.</h1>
@@ -37,11 +37,11 @@ export default function ListsPage() {
         <div className="mt-5 rounded-2xl border border-white/10 bg-[#171412] p-5">
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="List name — e.g. Comfort anime" aria-label="List name" />
           <Textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="What is this list about?" className="mt-3 min-h-[80px]" aria-label="List description" />
-          <div className="mt-3 flex items-center gap-3">
-            <button onClick={() => setPub(true)} className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs cursor-pointer ${pub ? "bg-[#e4572e] text-white" : "border border-white/10 text-zinc-400"}`}>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <button onClick={() => setPub(true)} className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs cursor-pointer max-sm:min-h-10 ${pub ? "bg-[#e4572e] text-white" : "border border-white/10 text-zinc-400"}`}>
               <Globe size={12} /> Public
             </button>
-            <button onClick={() => setPub(false)} className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs cursor-pointer ${!pub ? "bg-white/15 text-white" : "border border-white/10 text-zinc-400"}`}>
+            <button onClick={() => setPub(false)} className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs cursor-pointer max-sm:min-h-10 ${!pub ? "bg-white/15 text-white" : "border border-white/10 text-zinc-400"}`}>
               <Lock size={12} /> Private
             </button>
             <Button
@@ -67,12 +67,12 @@ export default function ListsPage() {
           />
         </div>
       ) : (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {lists.map((l) => (
             <div key={l.id} className="rounded-2xl border border-white/10 bg-[#171412] p-5">
               <div className="flex items-start justify-between gap-2">
                 <Link href={listHref(l.id)} className="serif text-xl text-zinc-50 hover:underline">{l.name}</Link>
-                <button onClick={() => deleteList(l.id)} aria-label={`Delete ${l.name}`} className="text-zinc-600 hover:text-red-400 cursor-pointer">
+                <button onClick={() => deleteList(l.id)} aria-label={`Delete ${l.name}`} className="-m-1.5 p-1.5 text-zinc-600 hover:text-red-400 cursor-pointer">
                   <Trash2 size={15} />
                 </button>
               </div>
@@ -87,7 +87,7 @@ export default function ListsPage() {
             <p className="text-sm font-medium text-zinc-300">Ideas to start</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {["Comfort anime", "Best villains", "2026 favorites", "Watch with friends"].map((s) => (
-                <button key={s} onClick={() => { setName(s); setOpen(true); }} className="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-400 hover:text-white cursor-pointer">
+                <button key={s} onClick={() => { setName(s); setOpen(true); }} className="rounded-full border border-white/10 px-3 py-2 text-xs text-zinc-400 hover:text-white cursor-pointer max-sm:min-h-10">
                   {s}
                 </button>
               ))}
