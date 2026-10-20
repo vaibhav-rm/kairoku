@@ -15,6 +15,10 @@ Next.js 16 · React 19 · TypeScript · Tailwind v4 · Firebase · Kitsu API.
   stay reachable.
 - **Ratings** — one half-star rating per series. Marking a series completed
   prompts for a rating, and ratings feed the recommendation engine.
+- **Franchise grouping** — search returns the first season only; its series page
+  has a switcher for every sequel, film, OVA and side story, each with its own
+  progress, status and rating. Related entries come from Kitsu's relationship
+  graph (`src/lib/kitsu.ts`).
 - **Lists** — create public or private collections, add titles straight from any
   anime page or from your library, and remove/reorder-free manage them. Lists
   keep a snapshot of their titles so they survive library deletions.
@@ -26,9 +30,11 @@ Next.js 16 · React 19 · TypeScript · Tailwind v4 · Firebase · Kitsu API.
   `/recommendations`, plus rails on Home and Discover.
 - **Upcoming & alerts** — `/upcoming` lists the next episodes of every airing
   title you're watching, in release order, with a live countdown and the exact
-  air date/time in your timezone. New episodes of watched airing shows raise an
-  in-app notification (`src/lib/airing.ts` resolves them from real episode air
-  dates).
+  air date/time in your timezone. A new season of a franchise you've started is
+  included even before you add that season to your library. New episodes of
+  watched airing shows raise an in-app notification (`src/lib/airing.ts`
+  resolves them from real episode air dates).
+
 ## Getting started
 
 ```bash

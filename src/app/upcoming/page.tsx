@@ -9,7 +9,7 @@ import { useMounted } from "@/hooks/use-mounted";
 import { useNow } from "@/hooks/use-now";
 import { countdown } from "@/lib/utils";
 import { animeHref, episodeHref } from "@/lib/routes";
-import { airingWatchingCount, buildSchedule, type Schedule } from "@/lib/airing";
+import { buildSchedule, type Schedule } from "@/lib/airing";
 import { EmptyState, Skeleton } from "@/components/ui";
 import { SafeImage } from "@/components/safe-image";
 import type { AiringItem } from "@/types";
@@ -56,7 +56,7 @@ export default function UpcomingPage() {
         if (alive) setSchedule(s);
       })
       .catch(() => {
-        if (alive) setSchedule({ upcoming: [], recent: [] });
+        if (alive) setSchedule({ upcoming: [], recent: [], airingCount: 0 });
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -64,8 +64,7 @@ export default function UpcomingPage() {
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, library.length]);
+  }, [user, library]);
 
   if (!mounted || !ready || !user) {
     return (
@@ -77,9 +76,9 @@ export default function UpcomingPage() {
     );
   }
 
-  const airingCount = airingWatchingCount(library);
-  const upcoming = schedule?.upcoming ?? [];
-  const recent = (schedule?.recent ?? []).filter((r) => {
+  const airingCount = library.length > 0 ? schedule?.airingCount ?? 0 : 0;
+  const upcoming = library.length > 0 ? schedule?.upcoming ?? [] : [];
+  const recent = (library.length > 0 ? schedule?.recent ?? [] : []).filter((r) => {
     const entry = library.find((e) => e.animeId === r.anime.animeId);
     return !entry || r.episode.number > entry.currentEpisode;
   });
@@ -105,9 +104,9 @@ export default function UpcomingPage() {
           What&apos;s airing next.
         </h1>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-400">
-          Episodes from the airing titles you&apos;re watching, in release order —
-          with a live countdown to each drop
-          {airingCount > 0 ? ` (${airingCount} airing ${airingCount === 1 ? "series" : "serieses"})` : ""}.
+          Episodes from the shows you&apos;re watching — including new seasons
+          you haven&apos;t added yet — in release order, with a live countdown to
+          each drop{airingCount > 0 ? ` (${airingCount} airing)` : ""}.
         </p>
       </header>
 

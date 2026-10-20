@@ -7,9 +7,12 @@ import {
   getKitsuByCategory,
   getKitsuCategories,
   getKitsuEpisodePage,
+  getKitsuFranchise,
   getKitsuTop,
   isKitsuId,
+  KITSU_NS,
   kitsuIdOf,
+  resolveKitsuRoot,
   searchKitsu,
 } from "./kitsu";
 
@@ -25,8 +28,8 @@ const cache = new Map<string, { at: number; data: unknown }>();
 const TTL_SHORT = 1000 * 60 * 60 * 3; // 3 hours — airing & episode lists
 const TTL = 1000 * 60 * 60 * 8; // 8 hours — default (e.g. search results)
 const TTL_LONG = 1000 * 60 * 60 * 24; // 24 hours — near-static metadata
-// v3: the provider switched from Jikan to Kitsu, so older entries are stale.
-const CACHE_PREFIX = "kairoku:apicache:v3:";
+// v4: Kitsu metadata now carries the romaji title and franchise groups.
+const CACHE_PREFIX = "kairoku:apicache:v4:";
 const LEGACY_PREFIX = "kairoku:apicache:";
 const MAX_ENTRIES = 150;
 export const EPISODES_PER_PAGE = 20;
@@ -48,7 +51,9 @@ function ttlFor(key: string): number {
     key.startsWith("categories") ||
     key.startsWith("genre:") ||
     key.startsWith("top-anime") ||
-    key.startsWith("recs:")
+    key.startsWith("recs:") ||
+    key.startsWith("root:") ||
+    key.startsWith("group:")
   )
     return TTL_LONG;
   // Search queries and anything else.
@@ -192,16 +197,215 @@ async function cached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
   return task;
 }
 
+/**
+ * Reduce a title to its franchise stem, e.g. "Attack on Titan Season 2" and
+ * "Attack on Titan: The Final Season" both become "attack on titan".
+ * Search only needs one row per franchise, so this avoids fetching the
+ * relationship graph for every result (which Kitsu throttles heavily).
+ */
+function franchiseKey(title: string): string {
+  const normalized = title
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[’']/g, "");
+  // A colon or dash usually introduces a subtitle/season marker.
+  const head = normalized.split(/[:：]|\s*[-–—]\s*/)[0];
+  const stripped = head
+    .replace(
+      /\b(?:season|part|cour|movie|film|ova|ona|special|specials|recap|final|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|2nd|3rd|4th|5th|6th|7th|8th|9th|10th)\b.*$/,
+      ""
+    )
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+\d$/, "")
+    .replace(/\s+(?:ii|iii|iv|v|vi)$/, "")
+    .replace(/\s+(?:the|a|an|of|and|to)\s*$/, "")
+    .trim();
+  // Keep non-Latin titles distinct instead of collapsing every one into an
+  // empty key when no romanised title exists.
+  return stripped || normalized.trim() || title.toLowerCase().trim();
+}
+
+function fullSearchKey(title: string): string {
+  return title
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[’']/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function searchWords(value: string): string[] {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function matchesQuery(anime: Anime, words: string[]): boolean {
+  if (!words.length) return true;
+  const haystack = searchWords(
+    [
+      anime.title,
+      anime.titleEnglish,
+      anime.titleRomaji,
+      anime.titleJapanese,
+      ...anime.genres,
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+  return words.every((word) => haystack.includes(word));
+}
+
+function searchDate(anime: Anime): string {
+  // Unknown dates sort last; otherwise a newly announced season with no date
+  // can beat the actual first season.
+  return anime.airedFrom || (anime.year ? `${anime.year}-01-01` : "9999-12-31");
+}
+
+/** Prefer the earliest TV entry; fall back to the earliest entry of any type. */
+function betterRoot(candidate: Anime, current: Anime): boolean {
+  const candidateTv = candidate.type === "TV";
+  const currentTv = current.type === "TV";
+  if (candidateTv !== currentTv) return candidateTv;
+  const date = searchDate(candidate).localeCompare(searchDate(current));
+  if (date !== 0) return date < 0;
+  return candidate.animeId < current.animeId;
+}
+
+function collapseFranchises(list: Anime[]): Anime[] {
+  // Music videos are never part of a watch order.
+  const candidates = list.filter((anime) => anime.type !== "MUSIC");
+
+  const best = new Map<string, Anime>();
+  for (const anime of candidates) {
+    const key = franchiseKey(anime.title);
+    const current = best.get(key);
+    if (!current || betterRoot(anime, current)) best.set(key, anime);
+  }
+
+  // Merge obvious continuation stems (e.g. "dragon ball" + "dragon ball z").
+  // Requiring at least two words keeps generic one-word titles from absorbing
+  // unrelated shows.
+  const keys = [...best.keys()];
+  const parent = new Map(keys.map((key) => [key, key]));
+  const find = (key: string): string => {
+    let root = key;
+    while (parent.get(root) !== root) root = parent.get(root) || root;
+    return root;
+  };
+  const merge = (a: string, b: string) => {
+    const rootA = find(a);
+    const rootB = find(b);
+    if (rootA !== rootB) parent.set(rootB, rootA);
+  };
+  for (let i = 0; i < keys.length; i++) {
+    for (let j = i + 1; j < keys.length; j++) {
+      const a = keys[i];
+      const b = keys[j];
+      const short = a.length <= b.length ? a : b;
+      const long = a.length <= b.length ? b : a;
+      if (short.split(" ").length >= 2 && long.startsWith(`${short} `)) {
+        merge(a, b);
+      }
+
+      // A film/OVA/special with a longer, differently-punctuated title still
+      // belongs to the TV root when it contains the root as whole words.
+      // Example: "sousou no frieren marumaru..." under "frieren".
+      const aTv = best.get(a)?.type === "TV";
+      const bTv = best.get(b)?.type === "TV";
+      if (aTv !== bTv) {
+        const tvKey = aTv ? a : b;
+        const other = aTv ? b : a;
+        const tv = best.get(tvKey);
+        const extra = best.get(other);
+        const otherFull = extra
+          ? [extra.title, extra.titleEnglish, extra.titleRomaji]
+              .filter((title): title is string => !!title)
+              .map(fullSearchKey)
+          : [];
+        const keyMatch = ` ${other} `.includes(` ${tvKey} `);
+        const titleMatch =
+          tvKey.length >= 5 &&
+          otherFull.some((title) => ` ${title} `.includes(` ${tvKey} `));
+        const japaneseMatch =
+          !!tv?.titleJapanese &&
+          !!extra?.titleJapanese &&
+          (extra.titleJapanese.includes(tv.titleJapanese) ||
+            tv.titleJapanese.includes(extra.titleJapanese));
+        const prefixMatch =
+          !!tv &&
+          !!extra &&
+          [extra.title, extra.titleEnglish, extra.titleRomaji, extra.titleJapanese].some((left) => {
+            const leftWords = left ? fullSearchKey(left).split(" ").filter(Boolean) : [];
+            if (leftWords.length < 2) return false;
+            return [tv.title, tv.titleEnglish, tv.titleRomaji, tv.titleJapanese].some((right) => {
+              const rightWords = right
+                ? fullSearchKey(right).split(" ").filter(Boolean)
+                : [];
+              return (
+                rightWords.length >= 2 &&
+                rightWords[0] === leftWords[0] &&
+                rightWords[1] === leftWords[1]
+              );
+            });
+          });
+        if (keyMatch || titleMatch || japaneseMatch || prefixMatch) merge(a, b);
+      }
+    }
+  }
+
+  const groupRoots = new Map<string, Anime>();
+  for (const key of keys) {
+    const group = find(key);
+    const candidate = best.get(key);
+    if (!candidate) continue;
+    const current = groupRoots.get(group);
+    if (!current || betterRoot(candidate, current)) {
+      groupRoots.set(group, candidate);
+    }
+  }
+
+  // Preserve Kitsu's relevance order, but replace each group with its root.
+  const seen = new Set<string>();
+  const out: Anime[] = [];
+  for (const anime of candidates) {
+    const group = find(franchiseKey(anime.title));
+    if (seen.has(group)) continue;
+    seen.add(group);
+    const root = groupRoots.get(group);
+    if (root) out.push(root);
+  }
+  return out;
+}
+
 export async function searchAnime(q: string): Promise<Anime[]> {
-  if (!q.trim()) return [];
+  const query = q.trim();
+  if (!query) return [];
   const mock = MOCK_ANIME.filter((a) =>
-    `${a.title} ${a.titleJapanese} ${a.genres.join(" ")}`
+    `${a.title} ${a.titleJapanese} ${a.titleRomaji} ${a.genres.join(" ")}`
       .toLowerCase()
-      .includes(q.toLowerCase())
+      .includes(query.toLowerCase())
   );
   try {
-    const list = await cached(`search:${q.toLowerCase()}`, () => searchKitsu(q));
-    if (list.length) return list;
+    const list = await cached(`search:${query.toLowerCase()}`, () =>
+      searchKitsu(query)
+    );
+    if (list.length) {
+      // Kitsu's text filter can return loose matches. Keep the response only
+      // when at least one result genuinely contains the query; otherwise
+      // preserve the provider's relevance ranking.
+      const words = searchWords(query);
+      const relevant = list.filter((anime) => matchesQuery(anime, words));
+      return collapseFranchises(relevant.length ? relevant : list);
+    }
   } catch {}
   return mock.length ? mock : MOCK_ANIME.slice(0, 6);
 }
@@ -217,6 +421,38 @@ export async function getAnime(animeId: number): Promise<Anime | null> {
     } catch {}
   }
   return mock ?? null;
+}
+
+/**
+ * Every season, film, OVA and side story in an anime's franchise, ordered
+ * with the first season first. The root and group are cached separately so
+ * opening any member of the same franchise reuses the work.
+ */
+export async function getAnimeGroup(animeId: number): Promise<Anime[]> {
+  if (!isKitsuId(animeId)) {
+    const mock = MOCK_ANIME.find((a) => a.animeId === animeId);
+    return mock ? [mock] : [];
+  }
+
+  try {
+    const rootId = await cached(`root:${animeId}`, async () => {
+      const kitsuRoot = await resolveKitsuRoot(kitsuIdOf(animeId));
+      return KITSU_NS + kitsuRoot;
+    });
+    const group = await cached(`group:${rootId}`, () =>
+      getKitsuFranchise(kitsuIdOf(rootId))
+    );
+    if (group.length) {
+      if (!group.some((anime) => anime.animeId === animeId)) {
+        const current = await getAnime(animeId);
+        if (current) return [...group, current];
+      }
+      return group;
+    }
+  } catch {}
+
+  const current = await getAnime(animeId);
+  return current ? [current] : [];
 }
 
 export interface EpisodePage {
