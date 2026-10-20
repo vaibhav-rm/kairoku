@@ -96,9 +96,9 @@ export default function HomePage() {
           progressTotal={feature.totalEpisodes ?? feature.anime.episodes}
           progressLabel={`Episode ${feature.currentEpisode}${feature.totalEpisodes ? ` of ${feature.totalEpisodes}` : ""}`}
           countdown={feature.anime.nextEpisode ? `Next: Ep ${feature.anime.nextEpisode.number} · ${timeUntil(feature.anime.nextEpisode.airsAt)}` : undefined}
-          primaryHref={episodeHref(feature.anime.malId, feature.anime.title, feature.currentEpisode + 1)}
+          primaryHref={episodeHref(feature.anime.animeId, feature.anime.title, feature.currentEpisode + 1)}
           primaryLabel={`Continue — Episode ${feature.currentEpisode + 1}`}
-          secondaryHref={animeHref(feature.anime.malId, feature.anime.title)}
+          secondaryHref={animeHref(feature.anime.animeId, feature.anime.title)}
           secondaryLabel="Story details"
         />
       ) : fallback ? (
@@ -106,7 +106,7 @@ export default function HomePage() {
           anime={fallback}
           kicker="Premiere · Recommended for you"
           meta={[fallback.year, fallback.type, fallback.status].filter(Boolean).join(" · ")}
-          primaryHref={animeHref(fallback.malId, fallback.title)}
+          primaryHref={animeHref(fallback.animeId, fallback.title)}
           primaryLabel="View story"
           secondaryHref="/discover"
           secondaryLabel="More premieres"
@@ -225,7 +225,7 @@ export default function HomePage() {
           </div>
           <div className="no-scrollbar snap-row -mx-4 mt-5 flex gap-5 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
             {recs.map((a, i) => (
-              <RankCard key={a.malId} anime={a} rank={i + 1} />
+              <RankCard key={a.animeId} anime={a} rank={i + 1} />
             ))}
           </div>
         </section>
@@ -233,11 +233,11 @@ export default function HomePage() {
 
       {/* BECAUSE YOU LIKED */}
       {bundle?.because.map((rail) => (
-        <section key={rail.anime.malId}>
+        <section key={rail.anime.animeId}>
           <h2 className="serif text-2xl text-zinc-50">{rail.reason}</h2>
           <div className="no-scrollbar snap-row -mx-4 mt-4 flex gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
             {rail.items.map((a, i) => (
-              <div key={a.malId} className="w-[150px] shrink-0 snap-start sm:w-[170px]">
+              <div key={a.animeId} className="w-[150px] shrink-0 snap-start sm:w-[170px]">
                 <RecommendationCard rec={{ anime: a, score: 0, reasons: [`Like ${rail.anime.title}`] }} index={i} />
               </div>
             ))}

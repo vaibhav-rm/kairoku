@@ -2,11 +2,11 @@ import type { Anime, Episode } from "@/types";
 
 // Metadata provider: Kitsu's public JSON:API. It has permissive CORS, so the
 // browser talks to it directly — no proxy Function needed.
-// Kitsu ids are namespaced into our id space to keep them distinct from the
-// MAL ids used by older records and the seed catalogue.
+// Kitsu ids are offset into our own id space via KITSU_NS so stored records,
+// links and caches stay stable and independent of the raw provider id.
 export const KITSU_NS = 9000000;
-export const isKitsuId = (malId: number) => malId >= KITSU_NS;
-export const kitsuIdOf = (malId: number) => malId - KITSU_NS;
+export const isKitsuId = (animeId: number) => animeId >= KITSU_NS;
+export const kitsuIdOf = (animeId: number) => animeId - KITSU_NS;
 
 const BASE = "https://kitsu.io/api/edge";
 const PAGE_SIZE = 20;
@@ -75,13 +75,6 @@ interface KitsuCategoryDoc {
   data?: { id: string; attributes?: KitsuCategoryAttributes }[];
 }
 
-interface KitsuMappingDoc {
-  data?: {
-    relationships?: { item?: { data?: { id?: string } } };
-  }[];
-  included?: { id: string; type: string }[];
-}
-
 const FIELDS =
   "fields[anime]=canonicalTitle,titles,synopsis,posterImage,coverImage,averageRating,userCount,startDate,endDate,status,episodeCount,episodeLength,subtype,ageRating,categories";
 const INCLUDES = `include=categories&${FIELDS}&fields[categories]=title`;
@@ -114,7 +107,7 @@ function mapKitsu(item: KitsuItem, doc: KitsuDoc): Anime {
         : "Not Yet Aired";
   const img = (im?: KitsuImage | null) => im?.large || im?.medium || im?.small || im?.original || "";
   return {
-    malId: KITSU_NS + (parseInt(item.id, 10) || 0),
+    animeId: KITSU_NS + (parseInt(item.id, 10) || 0),
     source: "kitsu",
     title: a.titles?.en || a.titles?.en_jp || a.canonicalTitle || "Unknown title",
     titleJapanese: a.titles?.ja_jp || undefined,
@@ -165,17 +158,6 @@ export async function getKitsuAnime(kitsuId: number): Promise<Anime | null> {
   const doc = await get<KitsuDoc>(`/anime/${kitsuId}?${INCLUDES}`);
   const item = Array.isArray(doc.data) ? doc.data[0] : doc.data;
   return item ? mapKitsu(item, doc) : null;
-}
-
-/** Resolve a legacy MyAnimeList id to a Kitsu id (old library entries/links). */
-export async function resolveKitsuId(malId: number): Promise<number | null> {
-  const doc = await get<KitsuMappingDoc>(
-    `/mappings?filter[externalSite]=myanimelist/anime&filter[externalId]=${malId}&page[limit]=1&include=item`
-  );
-  const related = doc.data?.[0]?.relationships?.item?.data?.id;
-  const included = doc.included?.find((i) => i.type === "anime")?.id;
-  const parsed = parseInt(related || included || "", 10);
-  return Number.isFinite(parsed) ? parsed : null;
 }
 
 export interface KitsuEpisodePage {

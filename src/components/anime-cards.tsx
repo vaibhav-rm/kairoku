@@ -18,7 +18,7 @@ export function AnimeCard({ anime, index = 0 }: { anime: Anime; index?: number }
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.4, delay: Math.min(index * 0.04, 0.3) }}
     >
-      <Link href={animeHref(anime.malId, anime.title)} className="group block" aria-label={anime.title}>
+      <Link href={animeHref(anime.animeId, anime.title)} className="group block" aria-label={anime.title}>
         <div className="card-lift relative aspect-[2/3] overflow-hidden rounded-xl border border-white/10 bg-white/5">
           <SafeImage
             src={anime.coverImage}
@@ -75,7 +75,7 @@ export function ContinueCard({ entry }: { entry: LibraryEntry }) {
         <ProgressBar value={entry.currentEpisode} total={total} />
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setProgress(anime.malId, entry.currentEpisode - 1)}
+            onClick={() => setProgress(anime.animeId, entry.currentEpisode - 1)}
             className="grid size-9 place-items-center rounded-full border border-white/10 text-zinc-300 hover:bg-white/10 cursor-pointer"
             aria-label="Decrease episode"
           >
@@ -83,14 +83,14 @@ export function ContinueCard({ entry }: { entry: LibraryEntry }) {
           </button>
           <span className="text-sm tabular-nums text-zinc-200 w-8 text-center">{entry.currentEpisode}</span>
           <button
-            onClick={() => setProgress(anime.malId, entry.currentEpisode + 1)}
+            onClick={() => setProgress(anime.animeId, entry.currentEpisode + 1)}
             className="grid size-9 place-items-center rounded-full border border-white/10 text-zinc-300 hover:bg-white/10 cursor-pointer"
             aria-label="Increase episode"
           >
             +
           </button>
           <Link
-            href={episodeHref(anime.malId, anime.title, next)}
+            href={episodeHref(anime.animeId, anime.title, next)}
             className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#e4572e] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#cf4a24]"
           >
             <Play size={12} fill="currentColor" /> Continue
@@ -108,7 +108,7 @@ export function ContinueCard({ entry }: { entry: LibraryEntry }) {
 
 export function QuickAdd({ anime, compact = false }: { anime: Anime; compact?: boolean }) {
   const { library, setStatus } = useStore();
-  const inLib = library.some((e) => e.animeId === anime.malId);
+  const inLib = library.some((e) => e.animeId === anime.animeId);
   if (inLib)
     return compact ? (
       <span aria-label={`${anime.title} is in your Kairoku`} className="grid size-9 place-items-center rounded-full bg-emerald-500/15 text-emerald-300">

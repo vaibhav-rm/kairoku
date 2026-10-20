@@ -42,7 +42,7 @@ function SearchInner() {
     };
   }, [q]);
 
-  const go = (a: Anime) => router.push(animeHref(a.malId, a.title));
+  const go = (a: Anime) => router.push(animeHref(a.animeId, a.title));
 
   return (
     <div className="pt-4">
@@ -100,7 +100,7 @@ function SearchInner() {
 
       <ul id="anime-search-results" className="mt-6 space-y-2" role="listbox" aria-label="Search results">
         {results.map((a, i) => (
-          <li key={a.malId}>
+          <li key={a.animeId}>
             <div
               role="option"
               aria-selected={i === active}

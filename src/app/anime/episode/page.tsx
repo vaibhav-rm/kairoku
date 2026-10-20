@@ -5,7 +5,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { getAnime, getAnimeEpisodes } from "@/lib/anime-api";
-import { malIdFromSlug } from "@/lib/utils";
+import { animeIdFromSlug } from "@/lib/utils";
 import { animeHref, episodeHref } from "@/lib/routes";
 import type { Anime, Episode } from "@/types";
 import { useStore } from "@/lib/store";
@@ -16,7 +16,7 @@ function EpisodeView() {
   const search = useSearchParams();
   const slug = search.get("a") || "";
   const epNum = parseInt(search.get("ep") || "", 10);
-  const malId = malIdFromSlug(slug);
+  const animeId = animeIdFromSlug(slug);
   const router = useRouter();
   const {
     user, ready,
@@ -35,23 +35,23 @@ function EpisodeView() {
   }, [ready, user, router]);
 
   useEffect(() => {
-    if (!malId) return;
-    getAnime(malId).then(setAnime);
-    getAnimeEpisodes(malId).then((r) => {
+    if (!animeId) return;
+    getAnime(animeId).then(setAnime);
+    getAnimeEpisodes(animeId).then((r) => {
       setEp(r.episodes.find((e) => e.number === epNum) || { number: epNum, title: `Episode ${epNum}`, runtime: 24 });
     });
-  }, [malId, epNum]);
+  }, [animeId, epNum]);
 
   useEffect(() => {
-    if (!malId) return;
+    if (!animeId) return;
     // Restore a previously saved rating + note into the form.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRating(getEpisodeRating(malId, epNum));
-    const stored = getEpisodeNote(malId, epNum);
+    setRating(getEpisodeRating(animeId, epNum));
+    const stored = getEpisodeNote(animeId, epNum);
     savedNoteRef.current = stored;
     setNote(stored);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [malId, epNum]);
+  }, [animeId, epNum]);
 
   // Debounced auto-save of the note (kept alongside the rating).
   useEffect(() => {
@@ -59,34 +59,34 @@ function EpisodeView() {
     if (note === savedNoteRef.current) return;
     const t = window.setTimeout(() => {
       savedNoteRef.current = note;
-      setEpisodeNote(anime.malId, ep.number, note);
+      setEpisodeNote(anime.animeId, ep.number, note);
     }, 700);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note, anime, ep]);
 
-  if (!malId || isNaN(epNum)) return <div className="pt-10"><EmptyState title="Episode not found." body="That episode doesn't exist." /></div>;
+  if (!animeId || isNaN(epNum)) return <div className="pt-10"><EmptyState title="Episode not found." body="That episode doesn't exist." /></div>;
   if (!anime || !ep) return <div className="space-y-3 pt-6"><Skeleton className="h-8 w-64" /><Skeleton className="h-40" /></div>;
 
-  const back = animeHref(anime.malId, anime.title);
+  const back = animeHref(anime.animeId, anime.title);
   const total = anime.episodes ?? null;
-  const watched = isWatched(anime.malId, ep.number);
+  const watched = isWatched(anime.animeId, ep.number);
   const prev = ep.number > 1 ? ep.number - 1 : null;
   const next = total ? (ep.number < total ? ep.number + 1 : null) : ep.number + 1;
-  const epHref = (n: number) => episodeHref(anime.malId, anime.title, n);
+  const epHref = (n: number) => episodeHref(anime.animeId, anime.title, n);
 
-  const storedNote = getEpisodeNote(anime.malId, ep.number);
+  const storedNote = getEpisodeNote(anime.animeId, ep.number);
   const noteDirty = note !== storedNote;
 
   const rate = (value: number) => {
     setRating(value);
-    setEpisodeRating(anime.malId, ep.number, value);
+    setEpisodeRating(anime.animeId, ep.number, value);
   };
 
   const commitNote = () => {
     if (note === savedNoteRef.current) return;
     savedNoteRef.current = note;
-    setEpisodeNote(anime.malId, ep.number, note);
+    setEpisodeNote(anime.animeId, ep.number, note);
   };
 
   return (

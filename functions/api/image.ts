@@ -1,17 +1,16 @@
 // Cloudflare Pages Function — same-origin artwork proxy.
 // Route: GET /api/image?url=<https image url>
 //
-// Direct hotlinks to the MAL CDN get blocked by tracking protection /
+// Direct hotlinks to provider CDNs get blocked by tracking protection /
 // opaque-response blocking in some browsers; serving the bytes ourselves
 // (correct MIME, our cache headers) fixes that. Ported from the former
 // Next.js route handler.
 
 // Hosts we are willing to proxy artwork for. An open image proxy is an
-// abuse vector, so this stays a tight allowlist (Kitsu/MAL CDNs only).
+// abuse vector, so this stays a tight allowlist (Kitsu CDN only).
 const ALLOWED = new Set([
-  "cdn.myanimelist.net",
-  "media.kitsu.io",
   "media.kitsu.app",
+  "media.kitsu.io",
 ]);
 
 const PLACEHOLDER = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
@@ -51,7 +50,7 @@ export async function onRequestGet(context: { request: Request }): Promise<Respo
     const upstream = await fetch(target, {
       headers: {
         "User-Agent": "Kairoku/1.0 (anime journal)",
-        Referer: "https://myanimelist.net/",
+        Referer: "https://kitsu.io/",
         Accept: "image/*",
       },
       signal: AbortSignal.timeout(12000),

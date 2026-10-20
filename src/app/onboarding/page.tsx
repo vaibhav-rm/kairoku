@@ -78,7 +78,7 @@ export default function OnboardingPage() {
   };
 
   const togglePick = (a: Anime) =>
-    setPicked((p) => (p.some((x) => x.malId === a.malId) ? p.filter((x) => x.malId !== a.malId) : [...p, a]));
+    setPicked((p) => (p.some((x) => x.animeId === a.animeId) ? p.filter((x) => x.animeId !== a.animeId) : [...p, a]));
 
   return (
     <div className="mx-auto max-w-2xl pt-8">
@@ -142,9 +142,9 @@ export default function OnboardingPage() {
           />
           <div className="mt-4 space-y-2">
             {results.map((a) => {
-              const on = picked.some((x) => x.malId === a.malId);
+              const on = picked.some((x) => x.animeId === a.animeId);
               return (
-                <button key={a.malId} onClick={() => togglePick(a)} className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition cursor-pointer ${on ? "border-[#e4572e]/60 bg-[#e4572e]/10" : "border-white/10 bg-[#171412]"}`}>
+                <button key={a.animeId} onClick={() => togglePick(a)} className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition cursor-pointer ${on ? "border-[#e4572e]/60 bg-[#e4572e]/10" : "border-white/10 bg-[#171412]"}`}>
                   <SafeImage src={a.coverImage} alt="" className="h-14 w-10 shrink-0 rounded-lg object-cover" />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium text-zinc-100">{a.title}</span>
                   {on && <Check size={16} className="shrink-0 text-[#e4572e]" />}
@@ -166,14 +166,14 @@ export default function OnboardingPage() {
           <h1 className="serif text-4xl text-zinc-50">Where are you right now?</h1>
           <div className="mt-5 space-y-3">
             {picked.map((a) => (
-              <div key={a.malId} className="rounded-2xl border border-white/10 bg-[#171412] p-4">
+              <div key={a.animeId} className="rounded-2xl border border-white/10 bg-[#171412] p-4">
                 <p className="text-sm font-medium text-zinc-100">{a.title}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {(["watching", "plan_to_watch", "completed", "paused", "dropped"] as LibraryStatus[]).map((s) => (
                     <button
                       key={s}
-                      onClick={() => setStatuses((m) => ({ ...m, [a.malId]: s }))}
-                      className={`rounded-full px-3 py-2 text-xs capitalize cursor-pointer max-sm:min-h-10 ${statuses[a.malId] === s ? "bg-[#e4572e] text-white" : "border border-white/10 text-zinc-400"}`}
+                      onClick={() => setStatuses((m) => ({ ...m, [a.animeId]: s }))}
+                      className={`rounded-full px-3 py-2 text-xs capitalize cursor-pointer max-sm:min-h-10 ${statuses[a.animeId] === s ? "bg-[#e4572e] text-white" : "border border-white/10 text-zinc-400"}`}
                     >
                       {s.replace(/_/g, " ")}
                     </button>
@@ -186,7 +186,7 @@ export default function OnboardingPage() {
             <Button variant="ghost" onClick={() => setStep(2)}>Back</Button>
             <Button
               onClick={() => {
-                picked.forEach((a) => setStatus(a, statuses[a.malId] || "watching"));
+                picked.forEach((a) => setStatus(a, statuses[a.animeId] || "watching"));
                 setStep(4);
               }}
             >

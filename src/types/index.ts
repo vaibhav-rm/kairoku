@@ -6,7 +6,7 @@ export type LibraryStatus =
   | "dropped";
 
 export interface Anime {
-  malId: number;
+  animeId: number;
   /** Which provider this record came from (IDs are namespaced, see kitsu.ts). */
   source?: "kitsu" | "mock";
   title: string;
@@ -36,7 +36,7 @@ export interface Anime {
 }
 
 export interface Episode {
-  malId?: number;
+  animeId?: number;
   number: number;
   title?: string;
   titleJapanese?: string;

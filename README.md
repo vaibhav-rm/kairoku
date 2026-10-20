@@ -1,7 +1,7 @@
 # Kairoku — Remember every story
 
 A personal anime tracking, rating, and recommendation platform
-(Letterboxd × MyAnimeList) with a live airing schedule.
+(a Letterboxd-style journal for anime) with a live airing schedule.
 Next.js 16 · React 19 · TypeScript · Tailwind v4 · Firebase · Kitsu API.
 
 ## Features
@@ -21,9 +21,9 @@ Next.js 16 · React 19 · TypeScript · Tailwind v4 · Firebase · Kitsu API.
   keep a snapshot of their titles so they survive library deletions.
 - **Recommendations** — a client-side taste engine (`src/lib/recommend.ts`)
   that scores candidates against genre/studio/decade affinities derived from
-  your statuses, ratings, reviews, and favourite genres. It blends MAL's
-  own similarity graph ("Because you liked X"), top titles within your top
-  genres, this season's airing shows, and all-time top anime. See
+  your statuses, ratings, reviews, and favourite genres. It blends same-genre
+  titles ("Because you liked X"), top titles within your top genres, this
+  season's airing shows, and all-time top anime. See
   `/recommendations`, plus rails on Home and Discover.
 - **Upcoming & alerts** — `/upcoming` lists the next episodes of every airing
   title you're watching, in release order, with a live countdown and the exact
@@ -49,8 +49,8 @@ Live metadata comes from the [Kitsu API](https://kitsu.io) (no key needed).
 It is a public JSON:API with permissive CORS, so the browser calls it directly —
 there is no metadata proxy Function to run or rate-limit against.
 Every record is mapped into the shared `Anime` shape in `src/lib/kitsu.ts`, and
-Kitsu ids are namespaced (`+9000000`) so they never collide with the MAL ids used
-by the seed catalogue and older saved records. Discover shows a Live/Offline
+Kitsu ids are offset (`+9000000`) to form our own stable id space — the seed
+catalogue, links and saved records all use it. Discover shows a Live/Offline
 badge so the data source is always transparent.
 
 Kitsu caps every page at 20 records, so anime lists, episodes and search all
@@ -58,10 +58,6 @@ paginate. Episode pages walk forward on demand (the detail page has a "load
 more"), and the airing scheduler jumps straight to the last episode page to
 find the next unaired episode of a long-runner. Adult titles (`R18+`/`RX`) are
 filtered out of search and browse.
-
-Records saved before the provider switch carry MyAnimeList ids. Those are
-resolved through Kitsu's mapping table (`resolveKitsuId`) and cached for a day,
-so old library entries, links and route slugs keep working.
 
 Artwork goes through `/api/image?url=` (a Pages Function: same-origin bytes with
 correct MIME, branded SVG placeholder on failure) via the `SafeImage` component,

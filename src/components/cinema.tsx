@@ -149,7 +149,7 @@ export function RankCard({ anime, rank }: { anime: Anime; rank: number }) {
       transition={{ duration: 0.4 }}
       className="w-[170px] shrink-0 snap-start sm:w-[220px]"
     >
-      <Link href={animeHref(anime.malId, anime.title)} className="group flex items-end" aria-label={`#${rank}: ${anime.title}`}>
+      <Link href={animeHref(anime.animeId, anime.title)} className="group flex items-end" aria-label={`#${rank}: ${anime.title}`}>
         <span aria-hidden className="outline-num serif -mr-4 mb-1 shrink-0 text-[84px] font-semibold leading-[0.8] sm:text-[110px]">
           {rank}
         </span>

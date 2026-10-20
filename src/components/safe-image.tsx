@@ -16,11 +16,7 @@ const FALLBACK = DEV ? DEV_PLACEHOLDER : "/api/image?url=";
 export function px(src?: string | null): string {
   if (!src || !src.startsWith("http")) return FALLBACK;
   if (DEV) return src;
-  if (
-    src.includes("cdn.myanimelist.net") ||
-    src.includes("media.kitsu.io") ||
-    src.includes("media.kitsu.app")
-  ) {
+  if (src.includes("media.kitsu.io") || src.includes("media.kitsu.app")) {
     return `/api/image?url=${encodeURIComponent(src)}`;
   }
   return src;

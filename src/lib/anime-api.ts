@@ -10,7 +10,6 @@ import {
   getKitsuTop,
   isKitsuId,
   kitsuIdOf,
-  resolveKitsuId,
   searchKitsu,
 } from "./kitsu";
 
@@ -46,7 +45,6 @@ function ttlFor(key: string): number {
   // Near-static metadata is safe for a full day.
   if (
     key.startsWith("anime:") ||
-    key.startsWith("mal:") ||
     key.startsWith("categories") ||
     key.startsWith("genre:") ||
     key.startsWith("top-anime") ||
@@ -194,19 +192,6 @@ async function cached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
   return task;
 }
 
-/**
- * Kitsu id for an app id. Records created before the provider switch carry a
- * MAL id, so resolve those through Kitsu's mapping table (cached for a day).
- */
-async function kitsuIdFor(malId: number): Promise<number | null> {
-  if (isKitsuId(malId)) return kitsuIdOf(malId);
-  try {
-    return await cached<number | null>(`mal:${malId}`, () => resolveKitsuId(malId));
-  } catch {
-    return null;
-  }
-}
-
 export async function searchAnime(q: string): Promise<Anime[]> {
   if (!q.trim()) return [];
   const mock = MOCK_ANIME.filter((a) =>
@@ -221,17 +206,14 @@ export async function searchAnime(q: string): Promise<Anime[]> {
   return mock.length ? mock : MOCK_ANIME.slice(0, 6);
 }
 
-export async function getAnime(malId: number): Promise<Anime | null> {
-  const mock = MOCK_ANIME.find((a) => a.malId === malId);
-  const kitsuId = await kitsuIdFor(malId);
-  if (kitsuId != null) {
+export async function getAnime(animeId: number): Promise<Anime | null> {
+  const mock = MOCK_ANIME.find((a) => a.animeId === animeId);
+  if (isKitsuId(animeId)) {
     try {
-      const anime = await cached(`anime:${malId}`, () => getKitsuAnime(kitsuId));
-      if (anime) {
-        // Keep a legacy MAL id as the key so old library entries, links and
-        // route slugs continue to resolve after the provider switch.
-        return isKitsuId(malId) ? anime : { ...anime, malId };
-      }
+      const anime = await cached(`anime:${animeId}`, () =>
+        getKitsuAnime(kitsuIdOf(animeId))
+      );
+      if (anime) return anime;
     } catch {}
   }
   return mock ?? null;
@@ -245,20 +227,19 @@ export interface EpisodePage {
 }
 
 export async function getAnimeEpisodes(
-  malId: number,
+  animeId: number,
   page = 1
 ): Promise<EpisodePage> {
-  const kitsuId = await kitsuIdFor(malId);
-  if (kitsuId != null) {
+  if (isKitsuId(animeId)) {
     try {
-      const { episodes, total } = await cached(`eps:${malId}:${page}`, () =>
-        getKitsuEpisodePage(kitsuId, page, EPISODES_PER_PAGE)
+      const { episodes, total } = await cached(`eps:${animeId}:${page}`, () =>
+        getKitsuEpisodePage(kitsuIdOf(animeId), page, EPISODES_PER_PAGE)
       );
       const lastPage = Math.max(1, Math.ceil(total / EPISODES_PER_PAGE));
       return { episodes, hasNext: page < lastPage, lastPage, page };
     } catch {}
   }
-  const mock = MOCK_ANIME.find((a) => a.malId === malId);
+  const mock = MOCK_ANIME.find((a) => a.animeId === animeId);
   if (mock) {
     return { episodes: mockEpisodes(mock), hasNext: false, lastPage: 1, page };
   }
@@ -270,15 +251,15 @@ export async function getAnimeEpisodes(
  * safety cap — long-runners like One Piece have over a thousand episodes.
  */
 export async function getAllEpisodes(
-  malId: number,
+  animeId: number,
   maxEpisodes = 1500
 ): Promise<Episode[]> {
-  const first = await getAnimeEpisodes(malId, 1);
+  const first = await getAnimeEpisodes(animeId, 1);
   const eps = [...first.episodes];
   let page = 1;
   while (first.hasNext && page < first.lastPage && eps.length < maxEpisodes) {
     page += 1;
-    const next = await getAnimeEpisodes(malId, page);
+    const next = await getAnimeEpisodes(animeId, page);
     if (!next.episodes.length) break;
     eps.push(...next.episodes);
     if (!next.hasNext) break;
@@ -289,18 +270,18 @@ export async function getAllEpisodes(
   return [...seen.values()].sort((a, b) => a.number - b.number);
 }
 
-/** Highest-rated titles in the same genre as `malId` (Kitsu has no graph API). */
+/** Highest-rated titles in the same genre as `animeId` (Kitsu has no graph API). */
 export async function getAnimeRecommendations(
-  malId: number,
+  animeId: number,
   limit = 12
 ): Promise<Anime[]> {
-  const anime = await getAnime(malId);
+  const anime = await getAnime(animeId);
   const genre = anime?.genres[0];
   if (!genre) return [];
   const slug = (await getGenreIndex()).get(genre.toLowerCase()) ?? slugify(genre);
   if (!slug) return [];
   const list = await getAnimeByGenre(slug, limit + 1);
-  return list.filter((a) => a.malId !== malId).slice(0, limit);
+  return list.filter((a) => a.animeId !== animeId).slice(0, limit);
 }
 
 export interface BrowseLists {
@@ -383,6 +364,6 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-export function mockById(malId: number): Anime | undefined {
-  return MOCK_ANIME.find((a) => a.malId === malId);
+export function mockById(animeId: number): Anime | undefined {
+  return MOCK_ANIME.find((a) => a.animeId === animeId);
 }

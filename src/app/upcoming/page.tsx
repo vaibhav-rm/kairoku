@@ -80,7 +80,7 @@ export default function UpcomingPage() {
   const airingCount = airingWatchingCount(library);
   const upcoming = schedule?.upcoming ?? [];
   const recent = (schedule?.recent ?? []).filter((r) => {
-    const entry = library.find((e) => e.animeId === r.anime.malId);
+    const entry = library.find((e) => e.animeId === r.anime.animeId);
     return !entry || r.episode.number > entry.currentEpisode;
   });
 
@@ -139,9 +139,9 @@ export default function UpcomingPage() {
               <h2 className="serif text-xl text-zinc-100">{group.label}</h2>
               <ul className="mt-3 divide-y divide-white/[0.06] overflow-hidden rounded-2xl border border-white/10 bg-[#141110]">
                 {group.items.map((item) => {
-                  const href = animeHref(item.anime.malId, item.anime.title);
+                  const href = animeHref(item.anime.animeId, item.anime.title);
                   return (
-                    <li key={`${item.anime.malId}-${item.episode.number}`} className="flex items-center gap-3 p-3 pr-4 transition hover:bg-white/[0.04]">
+                    <li key={`${item.anime.animeId}-${item.episode.number}`} className="flex items-center gap-3 p-3 pr-4 transition hover:bg-white/[0.04]">
                       <Link href={href} className="relative shrink-0">
                         <SafeImage
                           src={item.anime.coverImage}
@@ -173,7 +173,7 @@ export default function UpcomingPage() {
                           {countdown(item.airsAt, now)}
                         </p>
                         <Link
-                          href={episodeHref(item.anime.malId, item.anime.title, item.episode.number)}
+                          href={episodeHref(item.anime.animeId, item.anime.title, item.episode.number)}
                           className="mt-1 inline-flex items-center gap-1 rounded-full py-1.5 pl-1 pr-2 text-[11px] text-zinc-500 hover:text-white"
                         >
                           <Play size={10} fill="currentColor" /> Episode page
@@ -194,9 +194,9 @@ export default function UpcomingPage() {
           <p className="mt-1 text-xs text-zinc-500">Missed the drop? These are waiting for you.</p>
           <ul className="mt-3 divide-y divide-white/[0.06] overflow-hidden rounded-2xl border border-white/10 bg-[#141110]">
             {recent.map((item) => {
-              const href = episodeHref(item.anime.malId, item.anime.title, item.episode.number);
+              const href = episodeHref(item.anime.animeId, item.anime.title, item.episode.number);
               return (
-                <li key={`${item.anime.malId}-${item.episode.number}`}>
+                <li key={`${item.anime.animeId}-${item.episode.number}`}>
                   <Link href={href} className="flex items-center gap-3 p-3 pr-4 transition hover:bg-white/[0.04]">
                     <span className="ml-1 rounded-full bg-[#e4572e]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[#e4572e]">New</span>
                     <span className="min-w-0 flex-1 truncate text-sm text-zinc-200">

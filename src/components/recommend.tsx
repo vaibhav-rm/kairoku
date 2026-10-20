@@ -27,7 +27,7 @@ export function RecommendationCard({
       transition={{ duration: 0.4, delay: Math.min(index * 0.04, 0.3) }}
       className={className ?? "w-[150px] shrink-0 snap-start sm:w-[170px]"}
     >
-      <Link href={animeHref(a.malId, a.title)} className="group block" aria-label={a.title}>
+      <Link href={animeHref(a.animeId, a.title)} className="group block" aria-label={a.title}>
         <div className="card-lift relative aspect-[2/3] overflow-hidden rounded-xl border border-white/10 bg-white/5">
           <SafeImage
             src={a.coverImage}
@@ -77,7 +77,7 @@ export function RecommendationRail({
       <h2 className="display serif mt-2 text-3xl text-zinc-50 sm:text-4xl">{title}</h2>
       <div className="no-scrollbar snap-row -mx-4 mt-5 flex gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
         {items.map((rec, i) => (
-          <RecommendationCard key={rec.anime.malId} rec={rec} index={i} />
+          <RecommendationCard key={rec.anime.animeId} rec={rec} index={i} />
         ))}
       </div>
     </section>

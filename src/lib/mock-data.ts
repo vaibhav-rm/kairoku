@@ -1,19 +1,20 @@
 import type { Anime, Episode } from "@/types";
 
 // Cinematic seed data — used as dev-mode fallback + when Kitsu is unreachable.
-// Images point at the MAL CDN (stable, hotlinkable through /api/image).
+// Every id and image URL is Kitsu-native (served through /api/image).
 export const MOCK_ANIME: Anime[] = [
   {
-    malId: 52991,
+    animeId: 9046474,
+    source: "mock",
     title: "Frieren: Beyond Journey's End",
     titleJapanese: "葬送のフリーレン",
     titleEnglish: "Frieren: Beyond Journey's End",
     synopsis:
       "An elven mage who outlived the hero's party sets out on a new journey — to understand humans, grief, and the time she wasted. A quiet masterpiece about memory and mortality.",
     coverImage:
-      "https://cdn.myanimelist.net/images/anime/2222/147756.jpg",
+      "https://media.kitsu.app/anime/46474/poster_image/large-ec9b98dd5fbf8f92532d1edb45f9e882.jpeg",
     bannerImage:
-      "https://cdn.myanimelist.net/images/anime/2222/147756l.jpg",
+      "https://media.kitsu.app/anime/46474/cover_image/large-167edf3e01fac59ce6aacfeb47df5634.jpeg",
     genres: ["Adventure", "Drama", "Fantasy"],
     studios: ["Madhouse"],
     year: 2023,
@@ -28,42 +29,40 @@ export const MOCK_ANIME: Anime[] = [
     broadcast: "Fridays at 23:00 JST",
   },
   {
-    malId: 40748,
+    animeId: 9042765,
+    source: "mock",
     title: "Jujutsu Kaisen",
     titleJapanese: "呪術廻戦",
     synopsis:
       "Yuji Itadori swallows a cursed finger and is thrust into a brutal world of sorcerers, curses, and impossible choices.",
     coverImage:
-      "https://cdn.myanimelist.net/images/anime/1792/138022.jpg",
+      "https://media.kitsu.app/anime/42765/poster_image/large-5ce19551c1a6cf995b378205b9149b5c.jpeg",
     bannerImage:
-      "https://cdn.myanimelist.net/images/anime/1792/138022l.jpg",
+      "https://media.kitsu.app/anime/cover_images/42765/large.jpg",
     genres: ["Action", "Fantasy"],
     studios: ["MAPPA"],
-    year: 2023,
+    year: 2020,
     type: "TV",
-    status: "Currently Airing",
+    status: "Finished Airing",
     score: 8.65,
     scoredBy: 890000,
     rank: 42,
-    episodes: 47,
-    airing: true,
-    airedFrom: "2023-07-06",
-    broadcast: "Thursdays at 23:56 JST",
-    nextEpisode: {
-      number: 48,
-      airsAt: new Date(Date.now() + 26 * 3600000).toISOString(),
-    },
+    episodes: 24,
+    airing: false,
+    airedFrom: "2020-10-03",
+    broadcast: "Fridays at 23:56 JST",
   },
   {
-    malId: 21,
+    animeId: 9000012,
+    source: "mock",
     title: "One Piece",
     titleJapanese: "ワンピース",
     synopsis:
       "Monkey D. Luffy sails the Grand Line with his crew in search of the legendary One Piece treasure.",
     coverImage:
-      "https://cdn.myanimelist.net/images/anime/1244/138851.jpg",
+      "https://media.kitsu.app/anime/poster_images/12/large.jpg",
     bannerImage:
-      "https://cdn.myanimelist.net/images/anime/1244/138851l.jpg",
+      "https://media.kitsu.app/anime/12/cover_image/large-3e72f400a87b5241780c5082f0582611.jpeg",
     genres: ["Action", "Adventure", "Fantasy"],
     studios: ["Toei Animation"],
     year: 1999,
@@ -81,15 +80,16 @@ export const MOCK_ANIME: Anime[] = [
     },
   },
   {
-    malId: 44511,
+    animeId: 9043806,
+    source: "mock",
     title: "Chainsaw Man",
     titleJapanese: "チェンソーマン",
     synopsis:
       "Broke devil hunter Denji fuses with his chainsaw-dog Pochita and becomes something the world has never seen.",
     coverImage:
-      "https://cdn.myanimelist.net/images/anime/1806/126216.jpg",
+      "https://media.kitsu.app/anime/43806/poster_image/large-815d6008fb3b56f4291b9f0ffa05cd8f.jpeg",
     bannerImage:
-      "https://cdn.myanimelist.net/images/anime/1806/126216l.jpg",
+      "https://media.kitsu.app/anime/43806/cover_image/large-964674a0f11524f62d65dde845ad8e1f.jpeg",
     genres: ["Action", "Fantasy"],
     studios: ["MAPPA"],
     year: 2022,
@@ -102,15 +102,16 @@ export const MOCK_ANIME: Anime[] = [
     airing: false,
   },
   {
-    malId: 5114,
+    animeId: 9003936,
+    source: "mock",
     title: "Fullmetal Alchemist: Brotherhood",
     titleJapanese: "鋼の錬金術師 FULLMETAL ALCHEMIST",
     synopsis:
       "Two brothers break alchemy's greatest taboo and pay the price — then spend years trying to make it right.",
     coverImage:
-      "https://cdn.myanimelist.net/images/anime/1208/94745.jpg",
+      "https://media.kitsu.app/anime/poster_images/3936/large.jpg",
     bannerImage:
-      "https://cdn.myanimelist.net/images/anime/1208/94745l.jpg",
+      "https://media.kitsu.app/anime/cover_images/3936/large.jpg",
     genres: ["Action", "Adventure", "Drama", "Fantasy"],
     studios: ["Bones"],
     year: 2009,
@@ -123,15 +124,16 @@ export const MOCK_ANIME: Anime[] = [
     airing: false,
   },
   {
-    malId: 38000,
+    animeId: 9041370,
+    source: "mock",
     title: "Demon Slayer: Kimetsu no Yaiba",
     titleJapanese: "鬼滅の刃",
     synopsis:
       "Tanjiro Kamado becomes a demon slayer to save his sister Nezuko and avenge his family.",
     coverImage:
-      "https://cdn.myanimelist.net/images/anime/1286/99889.jpg",
+      "https://media.kitsu.app/anime/poster_images/41370/large.jpg",
     bannerImage:
-      "https://cdn.myanimelist.net/images/anime/1286/99889l.jpg",
+      "https://media.kitsu.app/anime/41370/cover_image/large-3de3cc6d2b33162c928de10aa201e4ba.jpeg",
     genres: ["Action", "Fantasy"],
     studios: ["ufotable"],
     year: 2019,
@@ -144,15 +146,16 @@ export const MOCK_ANIME: Anime[] = [
     airing: false,
   },
   {
-    malId: 48583,
+    animeId: 9046241,
+    source: "mock",
     title: "Shangri-La Frontier",
     titleJapanese: "シャングリラ・フロンティア",
     synopsis:
       "A trash-game hunter takes on a god-tier VR MMO with nothing but skill and spite.",
     coverImage:
-      "https://cdn.myanimelist.net/images/anime/1968/140088.jpg",
+      "https://media.kitsu.app/anime/46241/poster_image/large-932c88032c14cb5ebcad1375ab1289e6.jpeg",
     bannerImage:
-      "https://cdn.myanimelist.net/images/anime/1968/140088l.jpg",
+      "https://media.kitsu.app/anime/46241/cover_image/large-449eb51713fe45045e55ec5372d09578.jpeg",
     genres: ["Action", "Adventure", "Fantasy"],
     studios: ["C2C"],
     year: 2023,
@@ -170,15 +173,16 @@ export const MOCK_ANIME: Anime[] = [
     },
   },
   {
-    malId: 60489,
+    animeId: 9048269,
+    source: "mock",
     title: "Dandadan",
     titleJapanese: "ダンダダン",
     synopsis:
       "A girl who believes in ghosts and a boy who believes in aliens discover both are very, very real.",
     coverImage:
-      "https://cdn.myanimelist.net/images/anime/1589/143719.jpg",
+      "https://media.kitsu.app/anime/48269/poster_image/large-589c017798b98c69e3a615ca4191f49d.jpeg",
     bannerImage:
-      "https://cdn.myanimelist.net/images/anime/1589/143719l.jpg",
+      "https://media.kitsu.app/anime/48269/cover_image/large-2a78bed2943524035cc0146c6633d1bf.jpeg",
     genres: ["Action", "Comedy", "Supernatural"],
     studios: ["Science SARU"],
     year: 2024,
@@ -196,18 +200,19 @@ export const MOCK_ANIME: Anime[] = [
     },
   },
   {
-    malId: 56558,
+    animeId: 9041084,
+    source: "mock",
     title: "Vinland Saga",
     titleJapanese: "ヴィンランド・サガ",
     synopsis:
       "Thorfinn's quest for revenge becomes a meditation on violence, fatherhood, and what it means to be a true warrior.",
     coverImage:
-      "https://cdn.myanimelist.net/images/anime/1500/138911.jpg",
+      "https://media.kitsu.app/anime/poster_images/41084/large.jpg",
     bannerImage:
-      "https://cdn.myanimelist.net/images/anime/1500/138911l.jpg",
+      "https://media.kitsu.app/anime/41084/cover_image/large-2590d6aecb5433b5693f3224e7265bb9.jpeg",
     genres: ["Action", "Adventure", "Drama"],
     studios: ["MAPPA"],
-    year: 2023,
+    year: 2019,
     type: "TV",
     status: "Finished Airing",
     score: 8.75,
@@ -217,15 +222,16 @@ export const MOCK_ANIME: Anime[] = [
     airing: false,
   },
   {
-    malId: 15417,
+    animeId: 9000419,
+    source: "mock",
     title: "Mushishi",
     titleJapanese: "蟲師",
     synopsis:
       "Ginko wanders a quiet Japan, mediating between humans and the ethereal Mushi — creatures of pure life.",
     coverImage:
-      "https://cdn.myanimelist.net/images/anime/1017/138006.jpg",
+      "https://media.kitsu.app/anime/poster_images/419/large.jpg",
     bannerImage:
-      "https://cdn.myanimelist.net/images/anime/1017/138006l.jpg",
+      "https://media.kitsu.app/anime/cover_images/419/large.jpg",
     genres: ["Adventure", "Fantasy", "Slice of Life"],
     studios: ["Artland"],
     year: 2005,
@@ -242,7 +248,7 @@ export const MOCK_ANIME: Anime[] = [
 export function mockEpisodes(anime: Anime, count?: number): Episode[] {
   const n = count ?? anime.episodes ?? 12;
   const titles: Record<number, string[]> = {
-    52991: [
+    9046474: [
       "The Journey's End",
       "It Didn't Have to Be Magic",
       "Killing Magic",
@@ -251,7 +257,7 @@ export function mockEpisodes(anime: Anime, count?: number): Episode[] {
   };
   return Array.from({ length: Math.min(n, 60) }, (_, i) => {
     const num = i + 1;
-    const custom = titles[anime.malId]?.[i];
+    const custom = titles[anime.animeId]?.[i];
     return {
       number: num,
       title: custom ?? `Episode ${num}`,
@@ -267,5 +273,3 @@ export function mockEpisodes(anime: Anime, count?: number): Episode[] {
     };
   });
 }
-
-export const MOCK_TRENDING_IDS = [52991, 60489, 40748, 21, 44511];

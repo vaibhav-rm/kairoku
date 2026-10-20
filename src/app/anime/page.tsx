@@ -5,7 +5,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Bookmark, Check, Minus, PenLine, Plus, ListPlus, Play } from "lucide-react";
 import { getAnime, getAnimeEpisodes } from "@/lib/anime-api";
-import { malIdFromSlug, timeUntil } from "@/lib/utils";
+import { animeIdFromSlug, timeUntil } from "@/lib/utils";
 import { episodeHref } from "@/lib/routes";
 import type { Anime, Episode } from "@/types";
 import { useStore } from "@/lib/store";
@@ -29,7 +29,7 @@ const STATUSES = [
 
 function AnimeDetail() {
   const slug = useSearchParams().get("a") || "";
-  const malId = malIdFromSlug(slug);
+  const animeId = animeIdFromSlug(slug);
   const mounted = useMounted();
   const [anime, setAnime] = useState<Anime | null>(null);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
@@ -42,7 +42,7 @@ function AnimeDetail() {
     library, setStatus, setProgress, setAnimeRating, getEpisodeRating, getEpisodeNote, reviews, addReview,
     isWatched, toggleWatched, lists, saveList, addToList, removeFromList, hasInList,
   } = useStore();
-  const entry = library.find((e) => e.animeId === malId);
+  const entry = library.find((e) => e.animeId === animeId);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [rTitle, setRTitle] = useState("");
   const [rBody, setRBody] = useState("");
@@ -52,12 +52,12 @@ function AnimeDetail() {
   const [newListName, setNewListName] = useState("");
 
   useEffect(() => {
-    if (!malId) return;
-    getAnime(malId).then((a) => {
+    if (!animeId) return;
+    getAnime(animeId).then((a) => {
       if (a) setAnime(a);
       else setFailed(true);
     });
-    getAnimeEpisodes(malId, 1)
+    getAnimeEpisodes(animeId, 1)
       .then((r) => {
         setEpisodes(r.episodes);
         setEpHasNext(r.hasNext);
@@ -65,13 +65,13 @@ function AnimeDetail() {
         setNextAiringEp(firstUpcoming(r.episodes));
       })
       .catch(() => {});
-  }, [malId]);
+  }, [animeId]);
 
   const loadMoreEpisodes = async () => {
-    if (!malId || epLoading || !epHasNext) return;
+    if (!animeId || epLoading || !epHasNext) return;
     setEpLoading(true);
     try {
-      const next = await getAnimeEpisodes(malId, epPage + 1);
+      const next = await getAnimeEpisodes(animeId, epPage + 1);
       const seen = new Set(episodes.map((e) => e.number));
       const merged = [...episodes, ...next.episodes.filter((e) => !seen.has(e.number))];
       setEpisodes(merged);
@@ -83,7 +83,7 @@ function AnimeDetail() {
     }
   };
 
-  if (!malId || failed)
+  if (!animeId || failed)
     return (
       <div className="pt-10">
         <EmptyState
@@ -104,12 +104,12 @@ function AnimeDetail() {
     );
 
   const total = anime.episodes ?? entry?.totalEpisodes ?? null;
-  const animeReviews = reviews.filter((r) => r.animeId === anime.malId);
+  const animeReviews = reviews.filter((r) => r.animeId === anime.animeId);
 
   // "Up next": the first episode we haven't ticked off (or next after progress).
   const highestWatched = Math.max(
     entry?.currentEpisode ?? 0,
-    ...episodes.filter((e) => isWatched(anime.malId, e.number)).map((e) => e.number),
+    ...episodes.filter((e) => isWatched(anime.animeId, e.number)).map((e) => e.number),
     0
   );
   const upNext = total && highestWatched >= total ? total : highestWatched + 1;
@@ -224,13 +224,13 @@ function AnimeDetail() {
                 ) : (
                   <div className="mt-2 space-y-1.5">
                     {lists.map((l) => {
-                      const on = hasInList(l.id, anime.malId);
+                      const on = hasInList(l.id, anime.animeId);
                       return (
                         <label key={l.id} className="flex cursor-pointer items-center gap-2.5 rounded-xl px-2 py-1.5 text-sm text-zinc-200 hover:bg-white/5">
                           <input
                             type="checkbox"
                             checked={on}
-                            onChange={(e) => (e.target.checked ? addToList(l.id, anime) : removeFromList(l.id, anime.malId))}
+                            onChange={(e) => (e.target.checked ? addToList(l.id, anime) : removeFromList(l.id, anime.animeId))}
                             className="size-4 accent-[#e4572e]"
                           />
                           <span className="flex-1 truncate">{l.name}</span>
@@ -267,24 +267,24 @@ function AnimeDetail() {
               <div className="mt-5 max-w-md rounded-2xl border border-white/10 bg-black/40 p-4 backdrop-blur">
                 <p className="text-xs uppercase tracking-widest text-zinc-500">Your progress</p>
                 <div className="mt-2 flex items-center gap-3">
-                  <button onClick={() => setProgress(anime.malId, entry.currentEpisode - 1)} className="grid size-9 place-items-center rounded-full border border-white/15 hover:bg-white/10 cursor-pointer" aria-label="Decrease episode">
+                  <button onClick={() => setProgress(anime.animeId, entry.currentEpisode - 1)} className="grid size-9 place-items-center rounded-full border border-white/15 hover:bg-white/10 cursor-pointer" aria-label="Decrease episode">
                     <Minus size={15} />
                   </button>
                   <p className="text-lg tabular-nums text-zinc-100">
                     Episode {entry.currentEpisode}{total ? ` / ${total}` : ""}
                   </p>
-                  <button onClick={() => setProgress(anime.malId, entry.currentEpisode + 1)} className="grid size-9 place-items-center rounded-full border border-white/15 hover:bg-white/10 cursor-pointer" aria-label="Increase episode">
+                  <button onClick={() => setProgress(anime.animeId, entry.currentEpisode + 1)} className="grid size-9 place-items-center rounded-full border border-white/15 hover:bg-white/10 cursor-pointer" aria-label="Increase episode">
                     <Plus size={15} />
                   </button>
                 </div>
                 <div className="mt-3"><ProgressBar value={entry.currentEpisode} total={total} /></div>
                 <div className="mt-3">
                   <p className="mb-1 text-xs text-zinc-500">Your rating</p>
-                  <Stars value={entry.rating} onRate={(v) => setAnimeRating(anime.malId, v)} label={`Rate ${anime.title}`} />
+                  <Stars value={entry.rating} onRate={(v) => setAnimeRating(anime.animeId, v)} label={`Rate ${anime.title}`} />
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <Link
-                    href={episodeHref(anime.malId, anime.title, upNext)}
+                    href={episodeHref(anime.animeId, anime.title, upNext)}
                     className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#e4572e] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#cf4a24]"
                   >
                     <Play size={12} fill="currentColor" /> Continue · Episode {upNext}
@@ -315,7 +315,7 @@ function AnimeDetail() {
               <Button
                 onClick={() => {
                   if (!rBody.trim() && !rTitle.trim()) return;
-                  addReview({ animeId: anime.malId, animeTitle: anime.title, coverImage: anime.coverImage, rating: rRating || 5, title: rTitle || "Untitled", body: rBody, spoilers: rSpoiler });
+                  addReview({ animeId: anime.animeId, animeTitle: anime.title, coverImage: anime.coverImage, rating: rRating || 5, title: rTitle || "Untitled", body: rBody, spoilers: rSpoiler });
                   setRTitle(""); setRBody(""); setRRating(0); setReviewOpen(false);
                 }}
               >
@@ -336,7 +336,7 @@ function AnimeDetail() {
               </span>
               {total && (
                 <Link
-                  href={episodeHref(anime.malId, anime.title, upNext)}
+                  href={episodeHref(anime.animeId, anime.title, upNext)}
                   className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-white/15 px-3.5 py-1.5 text-xs font-medium text-zinc-100 hover:bg-white/5"
                 >
                   <Play size={12} fill="currentColor" /> Up next: Ep {upNext}
@@ -350,9 +350,9 @@ function AnimeDetail() {
             <>
               <ol className="mt-4 divide-y divide-white/[0.06] overflow-hidden rounded-2xl border border-white/10 bg-[#141110]">
                 {episodes.map((ep) => {
-                  const epRating = getEpisodeRating(anime.malId, ep.number);
-                  const epNote = getEpisodeNote(anime.malId, ep.number);
-                  const watched = isWatched(anime.malId, ep.number);
+                  const epRating = getEpisodeRating(anime.animeId, ep.number);
+                  const epNote = getEpisodeNote(anime.animeId, ep.number);
+                  const watched = isWatched(anime.animeId, ep.number);
                   return (
                     <li key={ep.number} className="flex items-center gap-2 pr-3 transition hover:bg-white/[0.04]">
                       <button
@@ -365,7 +365,7 @@ function AnimeDetail() {
                         {watched ? <Check size={15} /> : ep.number}
                       </button>
                       <Link
-                        href={episodeHref(anime.malId, anime.title, ep.number)}
+                        href={episodeHref(anime.animeId, anime.title, ep.number)}
                         className="flex min-w-0 flex-1 items-center gap-3 py-3.5"
                       >
                         <span className="min-w-0 flex-1">
