@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, CalendarClock, Compass, Home, Library, Search, ListVideo, Sparkles } from "lucide-react";
+import { Bell, CalendarClock, Compass, Home, Library, Search, ListVideo, Sparkles, User } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useStore } from "@/lib/store";
@@ -39,8 +39,8 @@ export function TopNav() {
   const unread = notifications.filter((n) => !n.read).length;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/[0.07] bg-[#0f0e0c]/85 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
+    <header className="sticky top-0 z-40 border-b border-white/[0.07] bg-[#0f0e0c]/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:gap-4 sm:px-6">
         <Link href={u ? "/home" : "/"} className="flex shrink-0 items-center gap-2.5" aria-label="Kairoku home">
           <span className="hanko grid size-8 place-items-center rounded-[9px] text-[13px] font-bold leading-none">
             回
@@ -129,7 +129,8 @@ export function TopNav() {
                 Log in
               </Link>
               <Link href="/signup" className="rounded-full bg-[#e4572e] px-4 py-2 text-sm font-medium text-white hover:bg-[#cf4a24]">
-                Start your Kairoku
+                <span className="sm:hidden">Start</span>
+                <span className="hidden sm:inline">Start your Kairoku</span>
               </Link>
             </div>
           )}
@@ -149,16 +150,24 @@ export function BottomNav() {
     { href: "/discover", label: "Discover", icon: Compass },
     { href: "/upcoming", label: "Upcoming", icon: CalendarClock },
     { href: "/library", label: "Library", icon: Library },
-    { href: u ? profileHref(u.username) : "/login", label: "Profile", icon: Search },
+    { href: u ? profileHref(u.username) : "/login", label: "Profile", icon: User },
   ];
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0f0e0c]/95 backdrop-blur-xl md:hidden" aria-label="Mobile">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0f0e0c]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden" aria-label="Mobile">
       <div className="grid grid-cols-5">
         {items.map((l) => {
           const active = samePath(path, l.href.split("?")[0]);
           return (
-            <Link key={l.label} href={l.href} className={cn("flex flex-col items-center gap-1 py-2.5 text-[10px]", active ? "text-[#e4572e]" : "text-zinc-500")}>
-              <l.icon size={20} />
+            <Link
+              key={l.label}
+              href={l.href}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex min-h-14 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium",
+                active ? "text-[#e4572e]" : "text-zinc-500"
+              )}
+            >
+              <l.icon size={21} />
               {l.label}
             </Link>
           );
@@ -177,7 +186,7 @@ export function Toast() {
           initial={{ opacity: 0, y: 24, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 12, scale: 0.98 }}
-          className="fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 md:bottom-8"
+          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-[60] w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 md:bottom-8"
         >
           <div className="flex items-center gap-2 rounded-full border border-white/10 bg-[#1c1815]/95 px-5 py-2.5 text-sm text-zinc-100 shadow-2xl backdrop-blur">
             <span className="size-1.5 rounded-full bg-[#e4572e]" />

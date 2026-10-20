@@ -20,7 +20,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="mx-auto max-w-2xl pt-4">
-      <div className="flex items-end justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#e4572e]">通知 · Notifications</p>
           <h1 className="serif mt-1 text-3xl text-zinc-50">Never miss a story.</h1>
@@ -40,7 +40,7 @@ export default function NotificationsPage() {
                 <p className="text-sm font-medium text-zinc-100">{n.title}</p>
                 <p className="text-xs text-zinc-500">{n.body} · {new Date(n.createdAt).toLocaleString()}</p>
                 {n.animeId && (
-                  <Link href={animeHrefFromSlug(n.animeId)} className="mt-2 inline-block rounded-full bg-[#e4572e] px-4 py-1.5 text-xs font-semibold text-white">
+                  <Link href={animeHrefFromSlug(n.animeId)} className="mt-2 inline-flex items-center rounded-full bg-[#e4572e] px-4 py-1.5 text-xs font-semibold text-white max-sm:min-h-10">
                     Open series
                   </Link>
                 )}

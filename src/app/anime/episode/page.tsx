@@ -91,7 +91,7 @@ function EpisodeView() {
 
   return (
     <div className="mx-auto max-w-2xl pt-4">
-      <Link href={back} className="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white">
+      <Link href={back} className="inline-flex min-h-10 items-center gap-1.5 text-sm text-zinc-400 hover:text-white">
         <ArrowLeft size={15} /> {anime.title}
       </Link>
       <p className="mt-6 text-xs font-semibold uppercase tracking-[0.25em] text-[#e4572e]">
@@ -108,15 +108,15 @@ function EpisodeView() {
         type="button"
         onClick={() => toggleWatched(anime, ep.number, total)}
         aria-pressed={watched}
-        className={`mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition cursor-pointer ${watched ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30" : "border border-white/15 text-zinc-200 hover:bg-white/10"}`}
+        className={`mt-4 inline-flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition cursor-pointer ${watched ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30" : "border border-white/15 text-zinc-200 hover:bg-white/10"}`}
       >
         <Check size={15} /> {watched ? "Watched" : "Mark as watched"}
       </button>
 
       {/* Rating + optional note */}
-      <div className="mt-8 rounded-2xl border border-white/10 bg-[#171412] p-5">
+      <div className="mt-8 rounded-2xl border border-white/10 bg-[#171412] p-4 sm:p-5">
         <p className="text-sm font-medium text-zinc-200">How was it?</p>
-        <div className="mt-2 scale-110 origin-left"><Stars value={rating} onRate={rate} size={26} label={`Rate episode ${ep.number}`} /></div>
+        <div className="mt-2 w-fit"><Stars value={rating} onRate={rate} size={28} label={`Rate episode ${ep.number}`} /></div>
         <p className="mt-2 text-xs text-zinc-500">
           {rating > 0 ? `Saved — you rated this episode ${rating}★.` : "Tap for full stars, tap again for half. Ratings save as you go."}
         </p>
@@ -145,18 +145,18 @@ function EpisodeView() {
       {/* Prev / next episode */}
       <div className="mt-6 flex items-center justify-between gap-3">
         {prev ? (
-          <Link href={epHref(prev)} className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-4 py-2 text-sm text-zinc-200 hover:bg-white/10">
+          <Link href={epHref(prev)} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-white/15 px-4 py-2 text-sm text-zinc-200 hover:bg-white/10">
             <ArrowLeft size={14} /> Episode {prev}
           </Link>
         ) : (
           <span />
         )}
         {next ? (
-          <Link href={epHref(next)} className="inline-flex items-center gap-1.5 rounded-full bg-[#e4572e] px-4 py-2 text-sm font-semibold text-white hover:bg-[#cf4a24]">
+          <Link href={epHref(next)} className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[#e4572e] px-4 py-2 text-sm font-semibold text-white hover:bg-[#cf4a24]">
             Episode {next} <ArrowRight size={14} />
           </Link>
         ) : (
-          <Link href={back} className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-4 py-2 text-sm text-zinc-200 hover:bg-white/10">
+          <Link href={back} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-white/15 px-4 py-2 text-sm text-zinc-200 hover:bg-white/10">
             Back to series
           </Link>
         )}

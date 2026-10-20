@@ -38,7 +38,7 @@ function Band({
           <div className="absolute inset-0 bg-gradient-to-b from-[#0f0e0c] via-[#0f0e0c]/70 to-[#0f0e0c]" />
         </div>
       )}
-      <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
+      <div className="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-28">
         <motion.div {...fade} className="flex items-center gap-3">
           <span className="serif text-sm italic text-[#e4572e]">{no}</span>
           <span className="rule w-10" aria-hidden />
@@ -75,7 +75,7 @@ export default function Landing() {
           物語を、忘れない。
         </span>
 
-        <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col justify-end px-4 pb-10 pt-32 sm:px-6">
+        <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col justify-end px-4 pb-10 pt-28 sm:px-6 sm:pt-32">
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3">
             <span className="hanko grid size-7 place-items-center rounded-md text-xs font-bold">回</span>
             <p className="text-xs font-bold uppercase tracking-[0.32em] text-zinc-200">
@@ -105,11 +105,11 @@ export default function Landing() {
             transition={{ delay: 0.3 }}
             className="mt-8 flex flex-wrap gap-3"
           >
-            <Link href="/signup">
-              <Button className="px-8 py-3.5 text-base">Start your Kairoku <ArrowRight size={16} /></Button>
+            <Link href="/signup" className="max-sm:w-full">
+              <Button className="px-8 py-3.5 text-base max-sm:w-full">Start your Kairoku <ArrowRight size={16} /></Button>
             </Link>
-            <Link href="/discover">
-              <Button variant="outline" className="border-white/25 bg-black/40 px-8 py-3.5 text-base backdrop-blur">
+            <Link href="/discover" className="max-sm:w-full">
+              <Button variant="outline" className="border-white/25 bg-black/40 px-8 py-3.5 text-base backdrop-blur max-sm:w-full">
                 <Play size={16} /> Explore anime
               </Button>
             </Link>
@@ -153,13 +153,13 @@ export default function Landing() {
         <motion.h2 {...fade} className="display serif mt-5 max-w-3xl text-4xl leading-[1.05] text-zinc-50 sm:text-6xl">
           Your entire journey, <em>on one reel.</em>
         </motion.h2>
-        <div className="mt-10 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 md:grid-cols-3">
+        <div className="mt-10 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 md:grid-cols-3">
           {[
             { n: "一", t: "Currently watching", d: "Frieren · Episode 18 of 28. Always exactly where you left off — pick up in one tap." },
             { n: "二", t: "Next episode countdown", d: "Showtimes in your timezone, with a quiet nudge the moment it drops." },
             { n: "三", t: "Separate ratings", d: "Episodes and series rated apart, down to the half star. Your taste, precisely kept." },
           ].map((c, i) => (
-            <motion.div key={c.t} {...fade} transition={{ delay: i * 0.08 }} className="group bg-[#12100e] p-8">
+            <motion.div key={c.t} {...fade} transition={{ delay: i * 0.08 }} className="group bg-[#12100e] p-6 sm:p-8">
               <span className="serif text-5xl text-white/10 transition-colors group-hover:text-[#e4572e]/50">{c.n}</span>
               <h3 className="mt-4 text-lg font-semibold text-zinc-100">{c.t}</h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">{c.d}</p>
@@ -170,7 +170,7 @@ export default function Landing() {
 
       {/* ————— 02 UPCOMING ————— */}
       <Band no="02" jp="次回 · Upcoming" backdrop={MOCK_ANIME[8].bannerImage}>
-        <div className="grid items-center gap-12 md:grid-cols-2">
+        <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-12">
           <div>
             <motion.h2 {...fade} className="display serif mt-5 text-4xl leading-[1.05] text-zinc-50 sm:text-6xl">
               Never miss <em>the next drop.</em>
@@ -186,7 +186,7 @@ export default function Landing() {
               </Link>
             </motion.div>
           </div>
-          <motion.figure {...fade} className="card-lift relative rounded-2xl border border-white/10 bg-black/60 p-8 shadow-2xl backdrop-blur sm:p-10">
+          <motion.figure {...fade} className="card-lift relative rounded-2xl border border-white/10 bg-black/60 p-5 shadow-2xl backdrop-blur sm:p-10">
             <figcaption className="flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.25em] text-zinc-500">
               <span>Upcoming</span>
               <span className="text-[#e89a7c]">Your timezone</span>
@@ -249,8 +249,8 @@ export default function Landing() {
             ["612h", "Hours immersed"],
             ["Fantasy", "Favorite genre"],
           ].map(([n, l], i) => (
-            <motion.div key={l} {...fade} transition={{ delay: i * 0.06 }} className="bg-[#12100e] p-8 sm:p-10">
-              <p className="serif text-5xl tabular-nums text-zinc-50 sm:text-6xl">{n}</p>
+            <motion.div key={l} {...fade} transition={{ delay: i * 0.06 }} className="bg-[#12100e] p-6 sm:p-10">
+              <p className="serif text-4xl tabular-nums text-zinc-50 sm:text-6xl">{n}</p>
               <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.25em] text-zinc-500">{l}</p>
             </motion.div>
           ))}
@@ -267,13 +267,13 @@ export default function Landing() {
             Discover <ArrowUpRight size={15} />
           </Link>
         </motion.div>
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
+        <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
           {[
             { t: "A beautiful ending to an unforgettable journey", b: "Frieren understands something most anime never touch — that grief is just love with nowhere to go. I cried twice.", u: "vaibhav", r: 5 },
             { t: "The pacing finally clicked", b: "Chainsaw Man episode 7 is where the chaos finds its rhythm. Loud, ugly, perfect.", u: "momo", r: 4.5 },
             { t: "Vinland asks the hard question", b: "Can a story about revenge become a story about peace? Yes — and it is devastating.", u: "kenji", r: 5 },
           ].map((r, i) => (
-            <motion.article key={r.t} {...fade} transition={{ delay: i * 0.08 }} className="card-lift flex flex-col rounded-2xl border border-white/10 bg-[#141110] p-7">
+            <motion.article key={r.t} {...fade} transition={{ delay: i * 0.08 }} className="card-lift flex flex-col rounded-2xl border border-white/10 bg-[#141110] p-5 sm:p-7">
               <StarsDisplay value={r.r} />
               <h3 className="serif mt-4 text-xl leading-snug text-zinc-50">{r.t}</h3>
               <p className="mt-3 line-clamp-3 flex-1 text-sm leading-relaxed text-zinc-400">{r.b}</p>
@@ -297,10 +297,10 @@ export default function Landing() {
       </Band>
 
       {/* ————— CTA ————— */}
-      <section className="mx-auto max-w-6xl px-4 pb-24 pt-4 sm:px-6">
+      <section className="mx-auto max-w-6xl px-4 pb-16 pt-4 sm:px-6 sm:pb-24">
         <motion.div
           {...fade}
-          className="grain sunset-glow relative overflow-hidden rounded-3xl border border-white/10 p-10 text-center sm:p-20"
+          className="grain sunset-glow relative overflow-hidden rounded-3xl border border-white/10 p-6 text-center sm:p-20"
         >
           <span className="hanko mx-auto grid size-12 place-items-center rounded-xl text-xl font-bold">始</span>
           <p className="mt-6 text-xs font-bold uppercase tracking-[0.35em] text-[#e89a7c]">はじめよう · The feature begins</p>
@@ -308,8 +308,8 @@ export default function Landing() {
             Your anime journey deserves to be <em>remembered.</em>
           </h2>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <Link href="/signup"><Button className="px-9 py-3.5 text-base">Start your Kairoku</Button></Link>
-            <Link href="/discover"><Button variant="outline" className="px-9 py-3.5 text-base">Explore anime</Button></Link>
+            <Link href="/signup" className="max-sm:w-full"><Button className="px-9 py-3.5 text-base max-sm:w-full">Start your Kairoku</Button></Link>
+            <Link href="/discover" className="max-sm:w-full"><Button variant="outline" className="px-9 py-3.5 text-base max-sm:w-full">Explore anime</Button></Link>
           </div>
         </motion.div>
       </section>

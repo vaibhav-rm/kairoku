@@ -20,7 +20,7 @@ export function Button({
     <button
       {...props}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer",
+        "inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer max-sm:min-h-11",
         styles[variant],
         className
       )}
@@ -81,7 +81,7 @@ export function Stars({
 }) {
   const interactive = !!onRate;
   return (
-    <div className="flex items-center gap-1" role="radiogroup" aria-label={label}>
+    <div className={cn("flex w-fit items-center", interactive ? "-m-2 gap-0" : "gap-1")} role="radiogroup" aria-label={label}>
       {[1, 2, 3, 4, 5].map((i) => {
         const filled = value >= i;
         const half = !filled && value >= i - 0.5;
@@ -107,7 +107,9 @@ export function Stars({
             }}
             className={cn(
               "transition-transform",
-              interactive ? "cursor-pointer hover:scale-125 active:scale-95" : "cursor-default"
+              interactive
+                ? "grid cursor-pointer place-items-center p-2 hover:scale-110 active:scale-95"
+                : "cursor-default"
             )}
           >
             {half ? (

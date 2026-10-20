@@ -127,9 +127,9 @@ export default function OnboardingPage() {
               const on = picked.some((x) => x.malId === a.malId);
               return (
                 <button key={a.malId} onClick={() => togglePick(a)} className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition cursor-pointer ${on ? "border-[#e4572e]/60 bg-[#e4572e]/10" : "border-white/10 bg-[#171412]"}`}>
-                  <SafeImage src={a.coverImage} alt="" className="h-14 w-10 rounded-lg object-cover" />
-                  <span className="flex-1 text-sm font-medium text-zinc-100">{a.title}</span>
-                  {on && <Check size={16} className="text-[#e4572e]" />}
+                  <SafeImage src={a.coverImage} alt="" className="h-14 w-10 shrink-0 rounded-lg object-cover" />
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-zinc-100">{a.title}</span>
+                  {on && <Check size={16} className="shrink-0 text-[#e4572e]" />}
                 </button>
               );
             })}
@@ -155,7 +155,7 @@ export default function OnboardingPage() {
                     <button
                       key={s}
                       onClick={() => setStatuses((m) => ({ ...m, [a.malId]: s }))}
-                      className={`rounded-full px-3 py-1 text-xs capitalize cursor-pointer ${statuses[a.malId] === s ? "bg-[#e4572e] text-white" : "border border-white/10 text-zinc-400"}`}
+                      className={`rounded-full px-3 py-2 text-xs capitalize cursor-pointer max-sm:min-h-10 ${statuses[a.malId] === s ? "bg-[#e4572e] text-white" : "border border-white/10 text-zinc-400"}`}
                     >
                       {s.replace(/_/g, " ")}
                     </button>
@@ -187,7 +187,7 @@ export default function OnboardingPage() {
               <button
                 key={g}
                 onClick={() => setGenres((x) => (x.includes(g) ? x.filter((y) => y !== g) : [...x, g]))}
-                className={`rounded-full px-4 py-2 text-sm cursor-pointer ${genres.includes(g) ? "bg-[#e4572e] text-white" : "border border-white/10 text-zinc-300"}`}
+                className={`rounded-full px-4 py-2 text-sm cursor-pointer max-sm:min-h-10 ${genres.includes(g) ? "bg-[#e4572e] text-white" : "border border-white/10 text-zinc-300"}`}
               >
                 {g}
               </button>
@@ -219,9 +219,9 @@ export default function OnboardingPage() {
               ? `Your library starts with ${picked.length} ${picked.length === 1 ? "story" : "stories"}. Mark episodes watched as you go — we'll count down to the next one for you.`
               : "Your shelf is empty and full of possibility. Let's find your first story."}
           </p>
-          <div className="mt-6 flex justify-center gap-3">
-            <Button onClick={() => router.push("/home")} className="px-8 py-3">Open your library</Button>
-            <Button variant="outline" onClick={() => router.push("/discover")} className="px-8 py-3">Discover anime</Button>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Button onClick={() => router.push("/home")} className="px-8 py-3 max-sm:w-full">Open your library</Button>
+            <Button variant="outline" onClick={() => router.push("/discover")} className="px-8 py-3 max-sm:w-full">Discover anime</Button>
           </div>
         </div>
       )}

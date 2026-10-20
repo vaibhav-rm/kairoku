@@ -67,7 +67,7 @@ function Profile() {
           <p className="mt-1 max-w-lg text-sm text-zinc-300">{bioText || "No bio yet."}</p>
         </div>
         {isOwn && (
-          <Link href="/settings" className="rounded-full border border-white/15 px-5 py-2 text-sm text-zinc-100 hover:bg-white/5">
+          <Link href="/settings" className="inline-flex items-center self-start rounded-full border border-white/15 px-5 py-2 text-sm text-zinc-100 hover:bg-white/5 max-sm:min-h-11">
             Edit profile
           </Link>
         )}
@@ -91,7 +91,7 @@ function Profile() {
       </div>
 
       {/* Genre + rating charts (personal, not corporate) */}
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-white/10 bg-[#171412] p-5">
           <h3 className="text-sm font-semibold uppercase tracking-widest text-zinc-500">Genres you live in</h3>
           <div className="mt-4 space-y-2.5">
@@ -124,9 +124,9 @@ function Profile() {
       </div>
 
       {/* Tabs */}
-      <div className="mt-6 flex gap-2 overflow-x-auto border-b border-white/10 pb-2">
+      <div className="no-scrollbar mt-6 flex gap-2 overflow-x-auto border-b border-white/10 pb-2">
         {TABS.map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-medium cursor-pointer ${tab === t ? "bg-white/12 text-white bg-white/10" : "text-zinc-500 hover:text-white"}`}>
+          <button key={t} onClick={() => setTab(t)} className={`shrink-0 rounded-full px-4 py-2 text-xs font-medium cursor-pointer max-sm:min-h-10 ${tab === t ? "bg-white/10 text-white" : "text-zinc-500 hover:text-white"}`}>
             {t}
           </button>
         ))}
@@ -161,13 +161,13 @@ function Profile() {
           </div>
         )}
         {tab === "Reviews" && (
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {reviews.map((r) => (
               <article key={r.id} className="rounded-2xl border border-white/10 bg-[#171412] p-5">
                 <StarsDisplay value={r.rating} />
                 <h3 className="serif mt-2 text-lg text-zinc-50">{r.title}</h3>
                 <p className="mt-1 text-sm text-zinc-400">{r.body.slice(0, 160)}</p>
-                <button onClick={() => toggleLikeReview(r.id)} className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs cursor-pointer ${r.liked ? "bg-[#e4572e]/20 text-[#e4572e]" : "bg-white/5 text-zinc-400"}`}>
+                <button onClick={() => toggleLikeReview(r.id)} className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs cursor-pointer max-sm:min-h-10 ${r.liked ? "bg-[#e4572e]/20 text-[#e4572e]" : "bg-white/5 text-zinc-400"}`}>
                   <Heart size={12} fill={r.liked ? "currentColor" : "none"} /> {r.likes}
                 </button>
               </article>
@@ -186,7 +186,7 @@ function Profile() {
           </div>
         )}
         {tab === "Lists" && (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {lists.map((l) => (
               <Link key={l.id} href={listHref(l.id)} className="rounded-2xl border border-white/10 bg-[#171412] p-5 hover:bg-white/[0.04]">
                 <p className="serif text-lg text-zinc-50">{l.name}</p>

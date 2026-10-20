@@ -45,15 +45,15 @@ export default function LibraryPage() {
       <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#e4572e]">本棚 · Library</p>
       <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
         <h1 className="display serif text-3xl text-zinc-50 sm:text-4xl">Your shelf.</h1>
-        <select value={sort} onChange={(e) => setSort(e.target.value)} className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs text-zinc-200" aria-label="Sort library">
+        <select value={sort} onChange={(e) => setSort(e.target.value)} className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs text-zinc-200 max-sm:min-h-11" aria-label="Sort library">
           <option value="updated" className="bg-zinc-900">Recently updated</option>
           <option value="alpha" className="bg-zinc-900">Alphabetical</option>
           <option value="rating" className="bg-zinc-900">Your rating</option>
         </select>
       </div>
-      <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
+      <div className="no-scrollbar mt-5 flex gap-2 overflow-x-auto pb-1">
         {TABS.map((t) => (
-          <button key={t.v} onClick={() => setTab(t.v)} className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-medium cursor-pointer ${tab === t.v ? "bg-[#e4572e] text-white" : "border border-white/10 text-zinc-400 hover:text-white"}`}>
+          <button key={t.v} onClick={() => setTab(t.v)} className={`shrink-0 rounded-full px-4 py-2 text-xs font-medium cursor-pointer max-sm:min-h-10 ${tab === t.v ? "bg-[#e4572e] text-white" : "border border-white/10 text-zinc-400 hover:text-white"}`}>
             {t.label}
           </button>
         ))}
@@ -67,7 +67,7 @@ export default function LibraryPage() {
           />
         </div>
       ) : (
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((e) => (
             <div key={e.animeId} className="flex gap-3 rounded-2xl border border-white/10 bg-[#171412] p-3">
               <SafeImage src={e.anime?.coverImage} alt="" className="h-28 w-20 shrink-0 rounded-xl object-cover" loading="lazy" />
@@ -79,7 +79,7 @@ export default function LibraryPage() {
                 <div className="mt-2"><ProgressBar value={e.currentEpisode} total={e.totalEpisodes} /></div>
                 <div className="mt-2 flex items-center justify-between">
                   <StarsDisplay value={e.rating} size={12} />
-                  <button onClick={() => removeFromLibrary(e.animeId)} className="text-[11px] text-zinc-600 hover:text-red-400 cursor-pointer">Remove</button>
+                  <button onClick={() => removeFromLibrary(e.animeId)} className="-mr-1 -my-1 rounded-full px-2 py-2 text-[11px] text-zinc-600 hover:text-red-400 cursor-pointer">Remove</button>
                 </div>
               </div>
             </div>
