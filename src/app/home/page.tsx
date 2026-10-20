@@ -14,6 +14,7 @@ import { EmptyState, Skeleton } from "@/components/ui";
 import type { Anime } from "@/types";
 import { buildRecommendations, type RecommendationBundle } from "@/lib/recommend";
 import { RecommendationCard } from "@/components/recommend";
+import { buildSchedule, type Schedule } from "@/lib/airing";
 
 export default function HomePage() {
   const { user, ready, library, lists } = useStore();
@@ -21,6 +22,7 @@ export default function HomePage() {
   const router = useRouter();
   const [recs, setRecs] = useState<Anime[]>([]);
   const [bundle, setBundle] = useState<RecommendationBundle | null>(null);
+  const [schedule, setSchedule] = useState<Schedule | null>(null);
 
   useEffect(() => {
     if (ready && !user) router.replace("/");
@@ -45,6 +47,19 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, library.length]);
 
+  useEffect(() => {
+    if (!user || library.length === 0) return;
+    let alive = true;
+    buildSchedule(library)
+      .then((next) => {
+        if (alive) setSchedule(next);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [user, library]);
+
   if (!mounted || !ready || !user) {
     return (
       <div className="space-y-4 pt-6">
@@ -60,17 +75,31 @@ export default function HomePage() {
   const watching = library.filter((e) => e.status === "watching");
   const feature = watching[0];
   const fallback = !feature ? recs[0] : undefined;
-  const upcoming = library
-    .filter((e) => e.anime?.nextEpisode || e.anime?.airing)
-    .slice(0, 4);
   const totalEps = library.reduce((s, e) => s + e.currentEpisode, 0);
-  const nextUp = library
-    .filter((e) => e.anime?.nextEpisode?.airsAt)
-    .sort(
-      (a, b) =>
-        new Date(a.anime!.nextEpisode!.airsAt).getTime() -
-        new Date(b.anime!.nextEpisode!.airsAt).getTime()
-    )[0];
+
+  // Prefer the franchise-aware schedule (which can surface an untracked new
+  // season); fall back to library metadata while it loads.
+  const comingUp = library.length > 0 && schedule?.upcoming.length
+    ? schedule.upcoming.slice(0, 4).map((item) => ({
+        key: `${item.anime.animeId}-${item.episode.number}`,
+        title: item.anime.title,
+        episodeLabel: `Episode ${item.episode.number}`,
+        countdownLabel: timeUntil(new Date(item.airsAt).toISOString()),
+        href: animeHref(item.anime.animeId, item.anime.title),
+      }))
+    : library
+        .filter((e) => e.anime?.nextEpisode || e.anime?.airing)
+        .slice(0, 4)
+        .map((e) => ({
+          key: String(e.animeId),
+          title: e.anime?.title || "",
+          episodeLabel: `Episode ${e.anime?.nextEpisode?.number ?? e.currentEpisode + 1}`,
+          countdownLabel: e.anime?.nextEpisode
+            ? timeUntil(e.anime.nextEpisode.airsAt)
+            : "Soon",
+          href: animeHref(e.animeId, e.anime?.title),
+        }));
+  const nextUp = library.length > 0 ? schedule?.upcoming[0] : undefined;
 
   return (
     <div className="space-y-12 pt-4">
@@ -128,7 +157,7 @@ export default function HomePage() {
               Watchlist <ArrowRight size={14} />
             </Link>
           </div>
-          {upcoming.length === 0 ? (
+          {comingUp.length === 0 ? (
             <EmptyState
               title="No upcoming episodes."
               body="Follow an airing anime and we'll count down to the next episode."
@@ -136,14 +165,14 @@ export default function HomePage() {
             />
           ) : (
             <div>
-              {upcoming.map((e, i) => (
+              {comingUp.map((item, i) => (
                 <ShowtimeRow
-                  key={e.animeId}
+                  key={item.key}
                   index={`0${i + 1}`}
-                  title={e.anime?.title || ""}
-                  line={`Episode ${e.anime?.nextEpisode?.number ?? e.currentEpisode + 1}`}
-                  countdown={e.anime?.nextEpisode ? timeUntil(e.anime.nextEpisode.airsAt) : "Soon"}
-                  href={animeHref(e.animeId, e.anime?.title)}
+                  title={item.title}
+                  line={item.episodeLabel}
+                  countdown={item.countdownLabel}
+                  href={item.href}
                 />
               ))}
             </div>
@@ -191,15 +220,15 @@ export default function HomePage() {
               <h3 className="text-[11px] font-bold uppercase tracking-[0.28em] text-zinc-500">Up next</h3>
               <Link href="/upcoming" className="text-xs text-[#e89a7c] hover:text-white">Upcoming →</Link>
             </div>
-            {nextUp?.anime?.nextEpisode ? (
+            {nextUp ? (
               <div className="mt-3">
                 <p className="text-sm font-semibold text-zinc-100">{nextUp.anime.title}</p>
-                <p className="text-xs text-zinc-500">Episode {nextUp.anime.nextEpisode.number}</p>
+                <p className="text-xs text-zinc-500">Episode {nextUp.episode.number}</p>
                 <p className="serif mt-2 text-3xl tabular-nums text-zinc-50">
-                  {timeUntil(nextUp.anime.nextEpisode.airsAt)}
+                  {timeUntil(new Date(nextUp.airsAt).toISOString())}
                 </p>
                 <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-zinc-500">
-                  {new Date(nextUp.anime.nextEpisode.airsAt).toLocaleString(undefined, {
+                  {new Date(nextUp.airsAt).toLocaleString(undefined, {
                     weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
                   })}
                 </p>

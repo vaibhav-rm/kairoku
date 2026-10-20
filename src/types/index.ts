@@ -12,6 +12,8 @@ export interface Anime {
   title: string;
   titleJapanese?: string;
   titleEnglish?: string;
+  /** Romanised Japanese title (Kitsu's `en_jp`), useful for grouping. */
+  titleRomaji?: string;
   synopsis?: string;
   coverImage: string;
   bannerImage?: string;
