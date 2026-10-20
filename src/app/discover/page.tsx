@@ -19,7 +19,7 @@ function Rail({ title, sub, items }: { title: string; sub: string; items: Anime[
       <h2 className="display serif mt-2 text-3xl text-zinc-50 sm:text-4xl">{title}</h2>
       <div className="no-scrollbar snap-row -mx-4 mt-5 flex gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
         {items.map((a, i) => (
-          <div key={a.malId} className="w-[150px] shrink-0 snap-start sm:w-[170px]">
+          <div key={a.animeId} className="w-[150px] shrink-0 snap-start sm:w-[170px]">
             <AnimeCard anime={a} index={i} />
           </div>
         ))}
@@ -103,7 +103,7 @@ export default function DiscoverPage() {
         <h2 className="display serif mt-2 text-3xl text-zinc-50 sm:text-4xl">Top 10 highest rated</h2>
         <div className="no-scrollbar snap-row -mx-4 mt-5 flex gap-5 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
           {data.top.slice(0, 10).map((a, i) => (
-            <RankCard key={a.malId} anime={a} rank={i + 1} />
+            <RankCard key={a.animeId} anime={a} rank={i + 1} />
           ))}
         </div>
       </section>

@@ -18,6 +18,7 @@ export default function SignupPage() {
   const { signUp, signInGoogle } = useStore();
   const router = useRouter();
   const [err, setErr] = useState("");
+  const [googleBusy, setGoogleBusy] = useState(false);
   const { register, handleSubmit, formState } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
   });
@@ -57,12 +58,21 @@ export default function SignupPage() {
       <Button
         variant="outline"
         className="mt-3 w-full py-3"
+        disabled={googleBusy}
         onClick={async () => {
-          const isNew = await signInGoogle();
-          router.push(isNew ? "/onboarding" : "/home");
+          setErr("");
+          setGoogleBusy(true);
+          try {
+            const isNew = await signInGoogle();
+            router.push(isNew ? "/onboarding" : "/home");
+          } catch (e) {
+            setErr(e instanceof Error ? e.message : "Could not sign you in.");
+          } finally {
+            setGoogleBusy(false);
+          }
         }}
       >
-        Continue with Google
+        {googleBusy ? "Opening Google…" : "Continue with Google"}
       </Button>
       <p className="mt-6 text-center text-sm text-zinc-500">
         Already have one? <Link href="/login" className="text-zinc-100 underline underline-offset-4">Log in</Link>

@@ -33,10 +33,10 @@ function ListDetail() {
         .map((aid) => library.find((e) => e.animeId === aid)?.anime)
         .filter((a): a is Anime => !!a);
 
-  const inList = new Set(items.map((a) => a.malId));
+  const inList = new Set(items.map((a) => a.animeId));
   const candidates = library
     .map((e) => e.anime)
-    .filter((a): a is Anime => !!a && !inList.has(a.malId))
+    .filter((a): a is Anime => !!a && !inList.has(a.animeId))
     .filter((a) => a.title.toLowerCase().includes(q.toLowerCase()));
 
   return (
@@ -95,7 +95,7 @@ function ListDetail() {
             <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {candidates.slice(0, 12).map((a) => (
                 <button
-                  key={a.malId}
+                  key={a.animeId}
                   onClick={() => addToList(list.id, a)}
                   className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/30 p-2 text-left hover:border-[#e4572e]/50 cursor-pointer"
                 >
@@ -121,8 +121,8 @@ function ListDetail() {
           />
         )}
         {items.map((a) => (
-          <div key={a.malId} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-[#171412] p-3">
-            <Link href={animeHref(a.malId, a.title)} className="flex min-w-0 flex-1 items-center gap-4">
+          <div key={a.animeId} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-[#171412] p-3">
+            <Link href={animeHref(a.animeId, a.title)} className="flex min-w-0 flex-1 items-center gap-4">
               <SafeImage src={a.coverImage} alt="" className="h-16 w-11 shrink-0 rounded-lg object-cover" />
               <span className="min-w-0">
                 <span className="block truncate font-medium text-zinc-100">{a.title}</span>
@@ -130,7 +130,7 @@ function ListDetail() {
               </span>
             </Link>
             <button
-              onClick={() => removeFromList(list.id, a.malId)}
+              onClick={() => removeFromList(list.id, a.animeId)}
               aria-label={`Remove ${a.title} from ${list.name}`}
               className="grid size-9 shrink-0 place-items-center rounded-full text-zinc-500 hover:bg-white/10 hover:text-red-400 cursor-pointer"
             >

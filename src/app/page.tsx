@@ -125,7 +125,7 @@ export default function Landing() {
         >
           <div className="mx-auto grid max-w-6xl grid-cols-2 divide-x divide-white/10 px-4 sm:px-6 md:grid-cols-4">
             {showtimes.map((a) => (
-              <Link key={a.malId} href="/discover" className="group px-4 py-4 first:pl-0">
+              <Link key={a.animeId} href="/discover" className="group px-4 py-4 first:pl-0">
                 <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#e89a7c]">Coming soon</p>
                 <p className="mt-1 truncate text-sm font-semibold text-zinc-100 group-hover:text-white">{a.title}</p>
                 <p className="serif mt-0.5 text-lg tabular-nums text-zinc-300">
@@ -290,7 +290,7 @@ export default function Landing() {
           </h3>
           <div className="no-scrollbar snap-row -mx-4 mt-6 flex gap-5 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
             {MOCK_ANIME.slice(0, 8).map((a, i) => (
-              <RankCard key={a.malId} anime={a} rank={i + 1} />
+              <RankCard key={a.animeId} anime={a} rank={i + 1} />
             ))}
           </div>
         </div>
@@ -318,7 +318,7 @@ export default function Landing() {
         <p className="flex items-center justify-center gap-2 text-sm font-bold text-zinc-300">
           <span className="hanko grid size-6 place-items-center rounded-md text-[10px]">回</span> Kairoku
         </p>
-        <p className="mt-2 text-xs tracking-wide text-zinc-600">回録 — Remember every story · Data by Jikan / MyAnimeList</p>
+        <p className="mt-2 text-xs tracking-wide text-zinc-600">回録 — Remember every story · Data by Kitsu</p>
       </footer>
     </div>
   );

@@ -60,7 +60,7 @@ export function buildTaste(input: TasteInput): Taste {
 
   const rate = (a: Anime | undefined, w: number) => {
     if (!a) return;
-    seen.add(a.malId);
+    seen.add(a.animeId);
     for (const g of a.genres) bump(genres, g, w);
     for (const g of a.themes || []) bump(genres, g, w * 0.5);
     for (const s of a.studios) bump(studios, s, w * 0.6);
@@ -137,7 +137,7 @@ export function scoreAnime(anime: Anime, taste: Taste): Recommendation {
   if (dec != null) score += (taste.decades.get(String(dec)) || 0) * 0.35;
 
   // Quality prior: gently favour well-reviewed titles without letting the
-  // MAL score bury a perfect genre match.
+  // provider score bury a perfect genre match.
   if (anime.score != null) score += (anime.score - 7.2) * 0.4;
   if (anime.scoredBy && anime.scoredBy > 150_000) score += 0.1;
 
@@ -156,8 +156,8 @@ function dedupe(list: Anime[]): Anime[] {
   const seen = new Set<number>();
   const out: Anime[] = [];
   for (const a of list) {
-    if (!a.coverImage || seen.has(a.malId)) continue;
-    seen.add(a.malId);
+    if (!a.coverImage || seen.has(a.animeId)) continue;
+    seen.add(a.animeId);
     out.push(a);
   }
   return out;
@@ -171,8 +171,8 @@ export function rankRecommendations(
   const exclude = opts.exclude ?? new Set<number>();
   const limit = opts.limit ?? 12;
   return dedupe(candidates)
-    .filter((a) => !exclude.has(a.malId))
-    .filter((a) => opts.allowSeen || !taste.seen.has(a.malId))
+    .filter((a) => !exclude.has(a.animeId))
+    .filter((a) => opts.allowSeen || !taste.seen.has(a.animeId))
     .map((a) => scoreAnime(a, taste))
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
@@ -190,7 +190,7 @@ export interface RecommendationBundle {
  * rail and a few explainable "Because you liked X" rails.
  *
  * Candidate sources, in order of importance:
- *  1. MAL's own similarity graph for the user's best-rated titles
+ *  1. Same-genre titles for the user's best-rated titles
  *  2. Highest-rated titles within the user's top genres
  *  3. This season's airing anime
  *  4. All-time top anime (always present, keeps the rail full)
@@ -210,32 +210,32 @@ export async function buildRecommendations(
 
   const genresWanted = topGenres(taste, 3);
 
-  // Candidate pool — fetched sequentially so the throttle keeps us under
-  // Jikan's 3 req/s ceiling.
+  // Candidate pool — fetched sequentially so a render never fires a burst of
+  // provider requests.
   const pool: Anime[] = [];
   const top1 = await getTopAnime(1);
   pool.push(...top1);
   const season = await getSeasonAnime();
   pool.push(...season);
 
-  const genreIndex = genresWanted.length ? await getGenreIndex() : new Map<string, number>();
+  const genreIndex = genresWanted.length ? await getGenreIndex() : new Map<string, string>();
   for (const g of genresWanted) {
-    const id = genreIndex.get(g.toLowerCase());
-    if (id) pool.push(...(await getAnimeByGenre(id, 18)));
+    const slug = genreIndex.get(g.toLowerCase());
+    if (slug) pool.push(...(await getAnimeByGenre(slug, 18)));
   }
 
-  // "Because you liked X" rails from MAL's similarity graph.
+  // "Because you liked X" rails from the same genre.
   const because: RecommendationRail[] = [];
   for (const entry of topRated) {
     const anime = entry.anime!;
-    let similar = await getAnimeRecommendations(anime.malId, 12);
+    let similar = await getAnimeRecommendations(anime.animeId, 12);
     // Fallback: same-genre, highest rated.
     if (!similar.length && anime.genres[0]) {
-      const id = genreIndex.get(anime.genres[0].toLowerCase());
-      if (id) similar = await getAnimeByGenre(id, 12);
+      const slug = genreIndex.get(anime.genres[0].toLowerCase());
+      if (slug) similar = await getAnimeByGenre(slug, 12);
     }
     similar = dedupe(similar)
-      .filter((a) => a.malId !== anime.malId && !taste.seen.has(a.malId))
+      .filter((a) => a.animeId !== anime.animeId && !taste.seen.has(a.animeId))
       .slice(0, 10);
     if (similar.length >= 3) {
       because.push({

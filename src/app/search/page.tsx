@@ -26,17 +26,23 @@ function SearchInner() {
   }, []);
 
   useEffect(() => {
-    if (!q.trim()) return;
+    const query = q.trim();
+    if (!query) return;
+    let cancelled = false;
     const t = setTimeout(async () => {
-      const r = await searchAnime(q);
+      const r = await searchAnime(query);
+      if (cancelled) return; // a newer query already took over
       setResults(r);
       setActive(0);
       setLoading(false);
-    }, 350);
-    return () => clearTimeout(t);
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [q]);
 
-  const go = (a: Anime) => router.push(animeHref(a.malId, a.title));
+  const go = (a: Anime) => router.push(animeHref(a.animeId, a.title));
 
   return (
     <div className="pt-4">
@@ -48,9 +54,10 @@ function SearchInner() {
           ref={boxRef}
           value={q}
           onChange={(e) => {
-            setQ(e.target.value);
-            if (!e.target.value.trim()) setResults([]);
-            else setLoading(true);
+            const value = e.target.value;
+            setQ(value);
+            setResults([]);
+            setLoading(value.trim().length > 0);
           }}
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") {
@@ -63,6 +70,8 @@ function SearchInner() {
               go(results[active]);
             } else if (e.key === "Escape") {
               setQ("");
+              setResults([]);
+              setLoading(false);
             }
           }}
           placeholder="Title, Japanese title, genre…"
@@ -91,7 +100,7 @@ function SearchInner() {
 
       <ul id="anime-search-results" className="mt-6 space-y-2" role="listbox" aria-label="Search results">
         {results.map((a, i) => (
-          <li key={a.malId}>
+          <li key={a.animeId}>
             <div
               role="option"
               aria-selected={i === active}

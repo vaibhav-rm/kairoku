@@ -20,7 +20,7 @@ import type {
   LibraryEntry,
   LibraryStatus,
 } from "@/types";
-import { auth, db, initAnalytics, isFirebaseConfigured } from "@/lib/firebase";
+import { auth, db, initAnalytics, isFirebaseConfigured, authErrorMessage } from "@/lib/firebase";
 import { getAiringInfo } from "@/lib/airing";
 import {
   pullUserData,
@@ -484,7 +484,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (isFirebaseConfigured && auth) {
       const { GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } =
         await import("firebase/auth");
-      const cred = await signInWithPopup(auth, new GoogleAuthProvider());
+      const cred = await signInWithPopup(auth, new GoogleAuthProvider()).catch((e) => {
+        throw new Error(authErrorMessage(e));
+      });
       const isNew = getAdditionalUserInfo(cred)?.isNewUser ?? false;
       if (isNew) {
         const base = deriveUsername(cred.user.email);
@@ -534,10 +536,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const upsertLibrary: Store["upsertLibrary"] = (anime, patch) => {
     setLibrary((prev) => {
-      const ex = prev.find((e) => e.animeId === anime.malId);
-      if (ex) return prev.map((e) => (e.animeId === anime.malId ? { ...e, ...patch, anime, updatedAt: new Date().toISOString() } : e));
+      const ex = prev.find((e) => e.animeId === anime.animeId);
+      if (ex) return prev.map((e) => (e.animeId === anime.animeId ? { ...e, ...patch, anime, updatedAt: new Date().toISOString() } : e));
       const entry: LibraryEntry = {
-        animeId: anime.malId, anime,
+        animeId: anime.animeId, anime,
         status: patch.status ?? "plan_to_watch",
         currentEpisode: patch.currentEpisode ?? 0,
         totalEpisodes: anime.episodes ?? null,
@@ -630,7 +632,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   };
 
   const toggleWatched: Store["toggleWatched"] = (anime, episode, total) => {
-    const key = String(anime.malId);
+    const key = String(anime.animeId);
     const already = (watched[key] || []).includes(episode);
     setWatched((prev) => {
       const list = prev[key] || [];
@@ -641,7 +643,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
     // Keep library progress coherent with what's been ticked off.
     if (!already) {
-      const entry = library.find((e) => e.animeId === anime.malId);
+      const entry = library.find((e) => e.animeId === anime.animeId);
       const reachedEnd = total != null && episode >= total;
       if (!entry) {
         upsertLibrary(anime, {
@@ -652,7 +654,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       } else if (episode > entry.currentEpisode || (reachedEnd && entry.status !== "completed")) {
         setLibrary((prev) =>
           prev.map((e) =>
-            e.animeId === anime.malId
+            e.animeId === anime.animeId
               ? {
                   ...e,
                   currentEpisode: Math.max(e.currentEpisode, episode),
@@ -667,7 +669,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         );
       }
     }
-    markEpisodeDirty(anime.malId);
+    markEpisodeDirty(anime.animeId);
   };
 
   const addReview: Store["addReview"] = (r) => {
@@ -682,7 +684,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const saveList: Store["saveList"] = (l) => {
     const items = l.items ?? [];
-    const animeIds = l.animeIds?.length ? l.animeIds : items.map((a) => a.malId);
+    const animeIds = l.animeIds?.length ? l.animeIds : items.map((a) => a.animeId);
     const existing = l.id ? lists.find((x) => x.id === l.id) : undefined;
     const saved: CustomList = existing
       ? { ...existing, ...l, items, animeIds }
@@ -715,9 +717,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       prev.map((l) => {
         if (l.id !== listId) return l;
         name = l.name;
-        if (l.items?.some((i) => i.malId === anime.malId)) return l;
+        if (l.items?.some((i) => i.animeId === anime.animeId)) return l;
         const items = [...(l.items || []), anime];
-        return { ...l, items, animeIds: items.map((i) => i.malId) };
+        return { ...l, items, animeIds: items.map((i) => i.animeId) };
       })
     );
     showToast(name ? `Added to ${name}.` : "Added to list.");
@@ -727,15 +729,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setLists((prev) =>
       prev.map((l) => {
         if (l.id !== listId) return l;
-        const items = (l.items || []).filter((i) => i.malId !== animeId);
-        return { ...l, items, animeIds: items.map((i) => i.malId) };
+        const items = (l.items || []).filter((i) => i.animeId !== animeId);
+        return { ...l, items, animeIds: items.map((i) => i.animeId) };
       })
     );
     showToast("Removed from list.");
   };
 
   const hasInList: Store["hasInList"] = (listId, animeId) =>
-    !!lists.find((l) => l.id === listId)?.items?.some((i) => i.malId === animeId);
+    !!lists.find((l) => l.id === listId)?.items?.some((i) => i.animeId === animeId);
   const markAllRead = () => setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
 
   // Notify when an airing title you're watching has a new episode out.
@@ -750,7 +752,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       watching.map(async (entry) => {
         const anime = entry.anime!;
         try {
-          const { latest } = await getAiringInfo(anime.malId);
+          const { latest } = await getAiringInfo(anime.animeId);
           if (!latest || latest.number <= (entry.currentEpisode || 0)) return;
           fresh.push({
             id: uid(),
@@ -763,7 +765,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             }`,
             read: false,
             createdAt: new Date().toISOString(),
-            animeId: anime.malId,
+            animeId: anime.animeId,
             episodeNumber: latest.number,
           });
         } catch {}

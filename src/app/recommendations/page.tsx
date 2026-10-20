@@ -111,7 +111,7 @@ export default function RecommendationsPage() {
             </div>
             <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
               {bundle.forYou.map((rec, i) => (
-                <div key={rec.anime.malId} className="w-full">
+                <div key={rec.anime.animeId} className="w-full">
                   <RecommendationCard rec={rec} index={i} className="w-full" />
                 </div>
               ))}
@@ -119,7 +119,7 @@ export default function RecommendationsPage() {
           </section>
 
           {bundle.because.map((rail) => (
-            <section key={rail.anime.malId}>
+            <section key={rail.anime.animeId}>
               <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#e4572e]">
                 あなたへ · Similar stories
               </p>
@@ -128,7 +128,7 @@ export default function RecommendationsPage() {
                   {rail.reason}
                 </h2>
                 <Link
-                  href={animeHref(rail.anime.malId, rail.anime.title)}
+                  href={animeHref(rail.anime.animeId, rail.anime.title)}
                   className="hidden shrink-0 text-sm text-zinc-400 hover:text-white sm:inline"
                 >
                   View title
@@ -136,7 +136,7 @@ export default function RecommendationsPage() {
               </div>
               <div className="no-scrollbar snap-row -mx-4 mt-5 flex gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
                 {rail.items.map((a, i) => (
-                  <div key={a.malId} className="w-[150px] shrink-0 snap-start sm:w-[170px]">
+                  <div key={a.animeId} className="w-[150px] shrink-0 snap-start sm:w-[170px]">
                     <RecommendationCard
                       rec={{ anime: a, score: 0, reasons: [`Like ${rail.anime.title}`] }}
                       index={i}

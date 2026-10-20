@@ -15,18 +15,18 @@ function airTime(ep: Episode): number | null {
 /**
  * Resolve the next unaired and latest aired episode for a title.
  *
- * Jikan paginates episodes oldest-first, so the interesting end of a long
+ * Kitsu paginates episodes oldest-first, so the interesting end of a long
  * (still-airing) series lives on the last page — we jump straight there
  * instead of walking every page.
  */
-export async function getAiringInfo(malId: number): Promise<AiringInfo> {
+export async function getAiringInfo(animeId: number): Promise<AiringInfo> {
   const now = Date.now();
-  const first = await getAnimeEpisodes(malId, 1);
+  const first = await getAnimeEpisodes(animeId, 1);
   const lastPage = Math.max(1, first.lastPage);
   const episodes =
     lastPage === 1
       ? first.episodes
-      : (await getAnimeEpisodes(malId, lastPage)).episodes;
+      : (await getAnimeEpisodes(animeId, lastPage)).episodes;
 
   const sorted = [...episodes].sort((a, b) => a.number - b.number);
   const next =
@@ -62,7 +62,7 @@ export async function buildSchedule(library: LibraryEntry[]): Promise<Schedule> 
   const infos = await Promise.all(
     watching.map(async (entry) => {
       try {
-        const info = await getAiringInfo(entry.anime!.malId);
+        const info = await getAiringInfo(entry.anime!.animeId);
         return { anime: entry.anime!, ...info };
       } catch {
         return null;

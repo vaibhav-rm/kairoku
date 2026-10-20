@@ -12,16 +12,16 @@ import { animeSlug } from "./utils";
  *   /lists/view/?id=<listId>
  *   /u/?u=<username>
  *
- * The `slug` still starts with the MAL id, so `malIdFromSlug` keeps working.
+ * The `slug` still starts with the anime id, so `animeIdFromSlug` keeps working.
  */
 
 function enc(value: string): string {
   return encodeURIComponent(value);
 }
 
-/** Link to an anime detail page from a MAL id + title. */
-export function animeHref(malId: number, title?: string | null): string {
-  return `/anime/?a=${enc(animeSlug(malId, title || ""))}`;
+/** Link to an anime detail page from an anime id + title. */
+export function animeHref(animeId: number, title?: string | null): string {
+  return `/anime/?a=${enc(animeSlug(animeId, title || ""))}`;
 }
 
 /** Link to an anime detail page from an existing slug (or a bare id). */
@@ -31,11 +31,11 @@ export function animeHrefFromSlug(slug: string | number): string {
 
 /** Link to a single episode page. */
 export function episodeHref(
-  malId: number,
+  animeId: number,
   title: string | null | undefined,
   episode: number
 ): string {
-  return `/anime/episode/?a=${enc(animeSlug(malId, title || ""))}&ep=${episode}`;
+  return `/anime/episode/?a=${enc(animeSlug(animeId, title || ""))}&ep=${episode}`;
 }
 
 /** Link to a custom list page. */

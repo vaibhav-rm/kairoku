@@ -42,11 +42,11 @@ export function slugify(s: string) {
     .slice(0, 60);
 }
 
-export function animeSlug(malId: number, title: string) {
-  return `${malId}-${slugify(title)}`;
+export function animeSlug(animeId: number, title: string) {
+  return `${animeId}-${slugify(title)}`;
 }
 
-export function malIdFromSlug(slug: string): number | null {
+export function animeIdFromSlug(slug: string): number | null {
   const m = slug.match(/^(\d+)/);
   return m ? parseInt(m[1], 10) : null;
 }

@@ -1,7 +1,8 @@
 # Kairoku — Remember every story
 
 A personal anime tracking, rating, and recommendation platform
-Next.js 16 · React 19 · TypeScript · Tailwind v4 · Firebase · Jikan API.
+(a Letterboxd-style journal for anime) with a live airing schedule.
+Next.js 16 · React 19 · TypeScript · Tailwind v4 · Firebase · Kitsu API.
 
 ## Features
 
@@ -10,7 +11,8 @@ Next.js 16 · React 19 · TypeScript · Tailwind v4 · Firebase · Jikan API.
 - **Episode tracking** — tick episodes watched directly from a series page,
   a persistent watched-set that survives progress changes, "up next" episode
   jumps, and prev/next episode navigation on the episode page. Long-runners
-  page through Jikan so One Piece isn't capped at 100 episodes.
+  page through Kitsu's 20-per-page episode API, so One Piece's 1,400 episodes
+  stay reachable.
 - **Ratings** — half-star series ratings plus separate per-episode ratings,
   each able to carry an optional private **note** stored with the rating and
   surfaced in the library and profile statistics.
@@ -19,9 +21,9 @@ Next.js 16 · React 19 · TypeScript · Tailwind v4 · Firebase · Jikan API.
   keep a snapshot of their titles so they survive library deletions.
 - **Recommendations** — a client-side taste engine (`src/lib/recommend.ts`)
   that scores candidates against genre/studio/decade affinities derived from
-  your statuses, ratings, reviews, and favourite genres. It blends MAL's
-  own similarity graph ("Because you liked X"), top titles within your top
-  genres, this season's airing shows, and all-time top anime. See
+  your statuses, ratings, reviews, and favourite genres. It blends same-genre
+  titles ("Because you liked X"), top titles within your top genres, this
+  season's airing shows, and all-time top anime. See
   `/recommendations`, plus rails on Home and Discover.
 - **Upcoming & alerts** — `/upcoming` lists the next episodes of every airing
   title you're watching, in release order, with a live countdown and the exact
@@ -43,31 +45,34 @@ is reserved in the `usernames` registry and stored on the profile.
 
 ## Anime data
 
-Live metadata comes from the [Jikan API](https://jikan.moe) (no key needed),
-proxied through `/api/jikan/...` — a Cloudflare Pages Function
-(`functions/api/jikan/[[path]].ts`, same-origin for the browser so there are no
-CORS failures), cached 30 min per isolate, and serving stale cache on 429s/errors.
-If Jikan is unreachable, the client falls back to the [Kitsu API](https://kitsu.io)
-(direct browser calls, permissive CORS), then to the built-in seed catalog.
-Discover shows a Live/Offline badge so the data source is always transparent.
-Kitsu records use namespaced IDs (see `src/lib/kitsu.ts`) that route through
-the same pages and library code paths.
+Live metadata comes from the [Kitsu API](https://kitsu.io) (no key needed).
+It is a public JSON:API with permissive CORS, so the browser calls it directly —
+there is no metadata proxy Function to run or rate-limit against.
+Every record is mapped into the shared `Anime` shape in `src/lib/kitsu.ts`, and
+Kitsu ids are offset (`+9000000`) to form our own stable id space — the seed
+catalogue, links and saved records all use it. Discover shows a Live/Offline
+badge so the data source is always transparent.
+
+Kitsu caps every page at 20 records, so anime lists, episodes and search all
+paginate. Episode pages walk forward on demand (the detail page has a "load
+more"), and the airing scheduler jumps straight to the last episode page to
+find the next unaired episode of a long-runner. Adult titles (`R18+`/`RX`) are
+filtered out of search and browse.
+
 Artwork goes through `/api/image?url=` (a Pages Function: same-origin bytes with
 correct MIME, branded SVG placeholder on failure) via the `SafeImage` component,
 so hotlink/ORB-blocked posters never render broken.
-If the provider is unreachable or rate-limited, the app falls back to the
-built-in seed catalog in `src/lib/mock-data.ts` plus a `localStorage` cache —
-UI development never blocks on the network.
+If the provider is unreachable, the app falls back to the built-in seed catalog
+in `src/lib/mock-data.ts` plus a `localStorage` cache — UI development never
+blocks on the network.
 
-Proxy details: real 404s pass straight through (so a missing title is
-distinguishable from a dead provider), responses carry
-`stale-while-revalidate`, and the client-side loader de-dupes concurrent
-requests for the same key and self-throttles to stay under Jikan's 3 req/s
-limit. Kitsu episode lists paginate too, so the fallback path is complete.
+The client-side loader de-dupes concurrent requests for the same key, keeps a
+short negative cache so a failing provider isn't hammered on every navigation,
+and serves stale copies while it recovers.
 
 ### Client cache
 
-Every provider response is cached in `localStorage` (`kairoku:apicache:v2:*`)
+Every provider response is cached in `localStorage` (`kairoku:apicache:v3:*`)
 with a timestamp, so a reload or revisit reuses what's already on the device
 instead of calling the API again — only genuinely new keys (a fresh search, an
 unseen page/episode/genre) hit the network. Freshness is per-key and never
@@ -99,7 +104,10 @@ Email/password + Google sign-in and Firestore sync are live:
   `firebase deploy --only firestore:rules`.
 - Add your deployed origin (e.g. `kairoku.pages.dev`, plus any custom domain)
   to Firebase Auth → Settings → **Authorized domains**, or Google sign-in
-  popups are blocked.
+  popups open and close immediately with `auth/unauthorized-domain`. Preview
+  deployments (`<hash>.kairoku.pages.dev`) count as separate origins and must
+  be added individually — a custom domain avoids that. `localhost` is
+  authorized by default.
 - If env vars are ever removed, the app falls back to local mode:
   everything persists in `localStorage` under `kairoku:*` keys.
 
