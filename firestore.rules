@@ -16,7 +16,7 @@ service cloud.firestore {
           && request.resource.data.status in ['watching','completed','plan_to_watch','paused','dropped'];
       }
       match /episodes/{animeId} {
-        // Per-anime episode ratings/notes + watched set: private to the owner.
+        // Per-anime watched set: private to the owner.
         allow read, write: if isOwner(userId);
       }
       match /lists/{listId} {
@@ -41,18 +41,6 @@ service cloud.firestore {
         allow read: if true;
         allow write: if false;
       }
-    }
-
-    // Reviews: public read, owner write
-    match /animeReviews/{reviewId} {
-      allow read: if true;
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if signedIn() && resource.data.userId == request.auth.uid;
-    }
-    match /episodeReviews/{reviewId} {
-      allow read: if true;
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if signedIn() && resource.data.userId == request.auth.uid;
     }
 
     // Username registry for uniqueness — readable by all, writable only for

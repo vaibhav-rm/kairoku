@@ -12,10 +12,8 @@ import {
 } from "react";
 import type {
   Anime,
-  AnimeReview,
   AppUser,
   CustomList,
-  EpisodeEntry,
   KNotification,
   LibraryEntry,
   LibraryStatus,
@@ -27,7 +25,6 @@ import {
   pushEpisode,
   pushLibraryEntry,
   pushList,
-  pushReview,
   type EpisodeDoc,
 } from "@/lib/sync";
 
@@ -50,17 +47,6 @@ interface Store {
   watched: Record<string, number[]>;
   isWatched: (animeId: number, episode: number) => boolean;
   toggleWatched: (anime: Anime, episode: number, total?: number | null) => void;
-  /** Per-episode records (rating + optional note): animeId -> episode -> entry. */
-  episodeData: Record<string, Record<string, EpisodeEntry>>;
-  getEpisodeEntry: (animeId: number, episode: number) => EpisodeEntry | undefined;
-  getEpisodeRating: (animeId: number, episode: number) => number;
-  getEpisodeNote: (animeId: number, episode: number) => string;
-  setEpisodeRating: (animeId: number, episode: number, rating: number) => void;
-  /** Save (or clear) an episode's optional note, keeping its rating. */
-  setEpisodeNote: (animeId: number, episode: number, note: string) => void;
-  reviews: AnimeReview[];
-  addReview: (r: Omit<AnimeReview, "id" | "createdAt" | "likes">) => AnimeReview;
-  toggleLikeReview: (id: string) => void;
   lists: CustomList[];
   saveList: (
     l: Omit<CustomList, "id" | "createdAt"> & { id?: string }
@@ -93,32 +79,19 @@ function save(key: string, val: unknown) {
   } catch {}
 }
 
-/**
- * Load episode records, migrating the older number-only shape
- * (animeId -> episode -> rating) into { rating, note, updatedAt } entries.
- */
-function loadEpisodeData(): Record<string, Record<string, EpisodeEntry>> {
-  try {
-    const raw = localStorage.getItem("kairoku:episodeData");
-    if (raw) return JSON.parse(raw) as Record<string, Record<string, EpisodeEntry>>;
-    const legacy = localStorage.getItem("kairoku:episodeRatings");
-    if (legacy) {
-      const parsed = JSON.parse(legacy) as Record<string, Record<string, number>>;
-      const migrated: Record<string, Record<string, EpisodeEntry>> = {};
-      for (const [animeId, eps] of Object.entries(parsed)) {
-        migrated[animeId] = {};
-        for (const [ep, rating] of Object.entries(eps)) {
-          migrated[animeId][ep] = { rating, updatedAt: new Date(0).toISOString() };
-        }
-      }
-      return migrated;
-    }
-  } catch {}
-  return {};
-}
-
 // Gap-filling merges: remote data never overwrites local edits (local-first),
 // it only backfills what this device doesn't already have. Watched sets union.
+
+/** Keep a saved entry's progress inside the series' real episode count. */
+function normalizeEntry(entry: LibraryEntry): LibraryEntry {
+  const total = entry.anime?.episodes ?? entry.totalEpisodes ?? null;
+  if (total == null) return entry;
+  const currentEpisode = Math.min(Math.max(0, entry.currentEpisode || 0), total);
+  if (currentEpisode === entry.currentEpisode && entry.totalEpisodes === total) {
+    return entry;
+  }
+  return { ...entry, currentEpisode, totalEpisodes: total };
+}
 
 function mergeLibrary(local: LibraryEntry[], remote: LibraryEntry[]): LibraryEntry[] {
   if (!remote.length) return local;
@@ -128,37 +101,11 @@ function mergeLibrary(local: LibraryEntry[], remote: LibraryEntry[]): LibraryEnt
     if (!entry || typeof entry.animeId !== "number") continue;
     const key = String(entry.animeId);
     if (!byId.has(key)) {
-      byId.set(key, entry);
+      byId.set(key, normalizeEntry(entry));
       changed = true;
     }
   }
   return changed ? [...byId.values()] : local;
-}
-
-function mergeEpisodeData(
-  local: Record<string, Record<string, EpisodeEntry>>,
-  remote: EpisodeDoc[]
-): Record<string, Record<string, EpisodeEntry>> {
-  if (!remote.length) return local;
-  const next: Record<string, Record<string, EpisodeEntry>> = { ...local };
-  let changed = false;
-  for (const doc of remote) {
-    const key = String(doc.animeId);
-    const forAnime = { ...(next[key] || {}) };
-    for (const [ep, entry] of Object.entries(doc.entries || {})) {
-      const existing = forAnime[ep];
-      if (
-        !existing ||
-        new Date(entry.updatedAt || 0).getTime() >
-          new Date(existing.updatedAt || 0).getTime()
-      ) {
-        forAnime[ep] = entry;
-        changed = true;
-      }
-    }
-    if (Object.keys(forAnime).length) next[key] = forAnime;
-  }
-  return changed ? next : local;
 }
 
 function mergeWatched(
@@ -192,18 +139,6 @@ function mergeLists(local: CustomList[], remote: CustomList[]): CustomList[] {
   return changed ? [...byId.values()] : local;
 }
 
-function mergeReviews(local: AnimeReview[], remote: AnimeReview[]): AnimeReview[] {
-  if (!remote.length) return local;
-  const byId = new Map(local.map((r) => [r.id, r] as const));
-  let changed = false;
-  for (const review of remote) {
-    if (!review?.id || byId.has(review.id)) continue;
-    byId.set(review.id, review);
-    changed = true;
-  }
-  return changed ? [...byId.values()] : local;
-}
-
 const uid = () =>
   Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
@@ -232,10 +167,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [library, setLibrary] = useState<LibraryEntry[]>([]);
   const [watched, setWatched] = useState<Record<string, number[]>>({});
-  const [episodeData, setEpisodeData] = useState<
-    Record<string, Record<string, EpisodeEntry>>
-  >({});
-  const [reviews, setReviews] = useState<AnimeReview[]>([]);
   const [lists, setLists] = useState<CustomList[]>([]);
   const [notifications, setNotifications] = useState<KNotification[]>([]);
   const [toast, setToast] = useState<string | null>(null);
@@ -244,7 +175,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Refs used by the debounced Firestore sync (keep latest values without
   // re-subscribing the timers on every render).
   const userRef = useRef<AppUser | null>(null);
-  const epDataRef = useRef<{ episodeData: Record<string, Record<string, EpisodeEntry>>; watched: Record<string, number[]> }>({ episodeData: {}, watched: {} });
+  const watchedRef = useRef<Record<string, number[]>>({});
   const dirtyEpisodesRef = useRef<Set<string>>(new Set());
   const episodeFlushRef = useRef<number | null>(null);
   const lastLibSyncRef = useRef<Record<string, string>>({});
@@ -255,12 +186,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // Client hydration from local-first storage (avoids SSR mismatch by design).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setUser(load<AppUser | null>("kairoku:user", null));
-    setLibrary(load("kairoku:library", []));
+    setLibrary(load<LibraryEntry[]>("kairoku:library", []).map(normalizeEntry));
     setWatched(load<Record<string, number[]>>("kairoku:watched", {}));
-    setEpisodeData(loadEpisodeData());
-    setReviews(load("kairoku:reviews", []));
     setLists(load("kairoku:lists", []));
     setNotifications(load<KNotification[]>("kairoku:notifs", []));
+    // Per-episode ratings/notes and reviews no longer exist in the app.
+    try {
+      localStorage.removeItem("kairoku:episodeData");
+      localStorage.removeItem("kairoku:episodeRatings");
+      localStorage.removeItem("kairoku:reviews");
+    } catch {}
     // If Firebase configured, attach auth listener lazily
     (async () => {
       if (isFirebaseConfigured && auth) {
@@ -293,8 +228,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => save("kairoku:library", library), [library]);
   useEffect(() => save("kairoku:watched", watched), [watched]);
-  useEffect(() => save("kairoku:episodeData", episodeData), [episodeData]);
-  useEffect(() => save("kairoku:reviews", reviews), [reviews]);
   useEffect(() => save("kairoku:lists", lists), [lists]);
   useEffect(() => save("kairoku:notifs", notifications), [notifications]);
   useEffect(() => {
@@ -306,8 +239,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     userRef.current = user;
   }, [user]);
   useEffect(() => {
-    epDataRef.current = { episodeData, watched };
-  }, [episodeData, watched]);
+    watchedRef.current = watched;
+  }, [watched]);
 
   // Firestore sync (best-effort, local-first). Wait for the initial pull so we
   // never overwrite a chosen username with a device-local placeholder.
@@ -350,7 +283,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(t);
   }, [library, user]);
 
-  // Lists + reviews: small collections, debounce a full best-effort write.
+  // Lists: small collection, debounce a full best-effort write.
   useEffect(() => {
     if (!isFirebaseConfigured || !user) return;
     const t = window.setTimeout(() => {
@@ -358,14 +291,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }, 1000);
     return () => window.clearTimeout(t);
   }, [lists, user]);
-
-  useEffect(() => {
-    if (!isFirebaseConfigured || !user) return;
-    const t = window.setTimeout(() => {
-      for (const review of reviews) void pushReview(user.id, review);
-    }, 1000);
-    return () => window.clearTimeout(t);
-  }, [reviews, user]);
 
   // On sign-in, backfill anything this device is missing from Firestore.
   useEffect(() => {
@@ -393,10 +318,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           };
         });
         setLibrary((prev) => mergeLibrary(prev, data.library));
-        setEpisodeData((prev) => mergeEpisodeData(prev, data.episodes));
         setWatched((prev) => mergeWatched(prev, data.episodes));
         setLists((prev) => mergeLists(prev, data.lists));
-        setReviews((prev) => mergeReviews(prev, data.reviews));
       })
       .catch(() => {})
       .finally(() => {
@@ -422,12 +345,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const ids = [...dirtyEpisodesRef.current];
       dirtyEpisodesRef.current.clear();
       if (!u) return;
-      const { episodeData: ed, watched: w } = epDataRef.current;
+      const w = watchedRef.current;
       for (const id of ids) {
         void pushEpisode(u.id, {
           animeId: Number(id),
           watched: w[id] || [],
-          entries: ed[id] || {},
           updatedAt: new Date().toISOString(),
         });
       }
@@ -537,38 +459,112 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const upsertLibrary: Store["upsertLibrary"] = (anime, patch) => {
     setLibrary((prev) => {
       const ex = prev.find((e) => e.animeId === anime.animeId);
-      if (ex) return prev.map((e) => (e.animeId === anime.animeId ? { ...e, ...patch, anime, updatedAt: new Date().toISOString() } : e));
+      if (ex) {
+        const total = anime.episodes ?? ex.totalEpisodes ?? null;
+        const currentEpisode = Math.min(
+          Math.max(0, patch.currentEpisode ?? ex.currentEpisode),
+          total ?? Number.MAX_SAFE_INTEGER
+        );
+        return prev.map((e) =>
+          e.animeId === anime.animeId
+            ? {
+                ...e,
+                ...patch,
+                anime,
+                totalEpisodes: total,
+                currentEpisode,
+                updatedAt: new Date().toISOString(),
+              }
+            : e
+        );
+      }
+      const total = anime.episodes ?? null;
       const entry: LibraryEntry = {
         animeId: anime.animeId, anime,
         status: patch.status ?? "plan_to_watch",
-        currentEpisode: patch.currentEpisode ?? 0,
-        totalEpisodes: anime.episodes ?? null,
+        currentEpisode: Math.min(
+          Math.max(0, patch.currentEpisode ?? 0),
+          total ?? Number.MAX_SAFE_INTEGER
+        ),
+        totalEpisodes: total,
         rating: patch.rating ?? 0,
         startedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      return [{ ...entry, ...patch }, ...prev];
+      const merged: LibraryEntry = { ...entry, ...patch };
+      const cap = total ?? merged.totalEpisodes ?? null;
+      return [
+        {
+          ...merged,
+          totalEpisodes: cap,
+          currentEpisode: Math.min(
+            Math.max(0, merged.currentEpisode),
+            cap ?? Number.MAX_SAFE_INTEGER
+          ),
+        },
+        ...prev,
+      ];
     });
   };
 
+  /** Mark every released episode watched — used when a series is completed. */
+  const markAllWatched = useCallback(
+    (animeId: number, total: number | null | undefined) => {
+      if (!total || total <= 0) return;
+      const key = String(animeId);
+      const all = Array.from({ length: total }, (_, i) => i + 1);
+      setWatched((prev) => {
+        const current = prev[key] || [];
+        const complete =
+          current.length === all.length && current.every((v, i) => v === all[i]);
+        return complete ? prev : { ...prev, [key]: all };
+      });
+      markEpisodeDirty(animeId);
+    },
+    [markEpisodeDirty]
+  );
+
   const setStatus: Store["setStatus"] = (anime, status) => {
-    upsertLibrary(anime, {
-      status,
-      completedAt: status === "completed" ? new Date().toISOString() : undefined,
-    });
+    const existing = library.find((e) => e.animeId === anime.animeId);
+    const total = anime.episodes ?? existing?.totalEpisodes ?? null;
+    const completed = status === "completed";
+    const patch: Partial<LibraryEntry> = { status };
+    if (completed) {
+      patch.completedAt = new Date().toISOString();
+      if (total) {
+        patch.currentEpisode = total;
+        patch.totalEpisodes = total;
+      }
+    } else {
+      patch.completedAt = undefined;
+    }
+    upsertLibrary(anime, patch);
+    if (completed) markAllWatched(anime.animeId, total);
     showToast(
-      status === "completed" ? "Another story completed." :
+      completed ? "Another story completed." :
       status === "watching" ? "Added to your Kairoku." : "Library updated."
     );
   };
 
   const setProgress = (animeId: number, ep: number) => {
-    setLibrary((prev) => prev.map((e) => e.animeId === animeId ? {
-      ...e, currentEpisode: Math.max(0, ep),
-      status: e.totalEpisodes && ep >= e.totalEpisodes ? "completed" : e.status === "completed" ? "completed" : e.status,
-      completedAt: e.totalEpisodes && ep >= e.totalEpisodes ? new Date().toISOString() : e.completedAt,
-      updatedAt: new Date().toISOString(),
-    } : e));
+    const entry = library.find((e) => e.animeId === animeId);
+    const total = entry?.totalEpisodes ?? null;
+    // Never let progress run past the real episode count.
+    const next = Math.max(0, total != null ? Math.min(ep, total) : ep);
+    if (total != null && next >= total) markAllWatched(animeId, total);
+    setLibrary((prev) =>
+      prev.map((e) => {
+        if (e.animeId !== animeId) return e;
+        const reachedEnd = e.totalEpisodes != null && next >= e.totalEpisodes;
+        return {
+          ...e,
+          currentEpisode: e.totalEpisodes != null ? Math.min(next, e.totalEpisodes) : next,
+          status: reachedEnd ? "completed" : e.status,
+          completedAt: reachedEnd ? new Date().toISOString() : e.completedAt,
+          updatedAt: new Date().toISOString(),
+        };
+      })
+    );
   };
 
   const setAnimeRating = (animeId: number, rating: number) => {
@@ -585,53 +581,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return !!entry && entry.currentEpisode >= episode;
   };
 
-  const getEpisodeEntry: Store["getEpisodeEntry"] = (animeId, episode) =>
-    episodeData[String(animeId)]?.[String(episode)];
-
-  const getEpisodeRating: Store["getEpisodeRating"] = (animeId, episode) =>
-    getEpisodeEntry(animeId, episode)?.rating || 0;
-
-  const getEpisodeNote: Store["getEpisodeNote"] = (animeId, episode) =>
-    getEpisodeEntry(animeId, episode)?.note || "";
-
-  /** Merge a patch into an episode's record; drop the record when it's empty. */
-  const writeEpisodeEntry = (
-    animeId: number,
-    episode: number,
-    patch: Partial<EpisodeEntry>
-  ) => {
-    setEpisodeData((prev) => {
-      const forAnime = { ...(prev[String(animeId)] || {}) };
-      const current = forAnime[String(episode)] ?? {
-        rating: 0,
-        note: "",
-        updatedAt: "",
-      };
-      const merged: EpisodeEntry = {
-        ...current,
-        ...patch,
-        updatedAt: new Date().toISOString(),
-      };
-      if ((merged.rating || 0) <= 0 && !merged.note?.trim()) {
-        delete forAnime[String(episode)];
-      } else {
-        forAnime[String(episode)] = merged;
-      }
-      return { ...prev, [String(animeId)]: forAnime };
-    });
-    markEpisodeDirty(animeId);
-  };
-
-  const setEpisodeRating: Store["setEpisodeRating"] = (animeId, episode, rating) => {
-    writeEpisodeEntry(animeId, episode, { rating });
-    if (rating > 0) showToast(`Episode ${episode} rated.`);
-  };
-
-  const setEpisodeNote: Store["setEpisodeNote"] = (animeId, episode, note) => {
-    writeEpisodeEntry(animeId, episode, { note });
-  };
-
   const toggleWatched: Store["toggleWatched"] = (anime, episode, total) => {
+    // Ignore anything outside the series' real episode range.
+    if (total != null && (episode < 1 || episode > total)) return;
     const key = String(anime.animeId);
     const already = (watched[key] || []).includes(episode);
     setWatched((prev) => {
@@ -648,7 +600,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!entry) {
         upsertLibrary(anime, {
           status: reachedEnd ? "completed" : "watching",
-          currentEpisode: episode,
+          currentEpisode: reachedEnd && total ? total : episode,
           completedAt: reachedEnd ? new Date().toISOString() : undefined,
         });
       } else if (episode > entry.currentEpisode || (reachedEnd && entry.status !== "completed")) {
@@ -657,7 +609,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             e.animeId === anime.animeId
               ? {
                   ...e,
-                  currentEpisode: Math.max(e.currentEpisode, episode),
+                  currentEpisode: reachedEnd && total
+                    ? total
+                    : Math.min(Math.max(e.currentEpisode, episode), total ?? Infinity),
                   status: reachedEnd ? "completed" : e.status,
                   completedAt: reachedEnd
                     ? new Date().toISOString()
@@ -668,19 +622,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           )
         );
       }
+      if (reachedEnd) markAllWatched(anime.animeId, total);
     }
     markEpisodeDirty(anime.animeId);
   };
-
-  const addReview: Store["addReview"] = (r) => {
-    const entry: AnimeReview = { ...r, id: uid(), likes: 0, createdAt: new Date().toISOString() };
-    setReviews((prev) => [entry, ...prev]);
-    showToast("Review published.");
-    return entry;
-  };
-
-  const toggleLikeReview = (id: string) =>
-    setReviews((prev) => prev.map((r) => r.id === id ? { ...r, liked: !r.liked, likes: (r.likes || 0) + (r.liked ? -1 : 1) } : r));
 
   const saveList: Store["saveList"] = (l) => {
     const items = l.items ?? [];
@@ -809,13 +754,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       signIn, signUp, signInGoogle, signOut, updateProfile,
       library, upsertLibrary, setStatus, setProgress, setAnimeRating, removeFromLibrary,
       watched, isWatched, toggleWatched,
-      episodeData, getEpisodeEntry, getEpisodeRating, getEpisodeNote, setEpisodeRating, setEpisodeNote,
-      reviews, addReview, toggleLikeReview,
       lists, saveList, deleteList, addToList, removeFromList, hasInList,
       notifications, markAllRead, syncAiringNotifications, toast, showToast,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, ready, library, watched, episodeData, reviews, lists, notifications, toast]
+    [user, ready, library, watched, lists, notifications, toast]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

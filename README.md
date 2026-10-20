@@ -13,15 +13,14 @@ Next.js 16 · React 19 · TypeScript · Tailwind v4 · Firebase · Kitsu API.
   jumps, and prev/next episode navigation on the episode page. Long-runners
   page through Kitsu's 20-per-page episode API, so One Piece's 1,400 episodes
   stay reachable.
-- **Ratings** — half-star series ratings plus separate per-episode ratings,
-  each able to carry an optional private **note** stored with the rating and
-  surfaced in the library and profile statistics.
+- **Ratings** — one half-star rating per series. Marking a series completed
+  prompts for a rating, and ratings feed the recommendation engine.
 - **Lists** — create public or private collections, add titles straight from any
   anime page or from your library, and remove/reorder-free manage them. Lists
   keep a snapshot of their titles so they survive library deletions.
 - **Recommendations** — a client-side taste engine (`src/lib/recommend.ts`)
   that scores candidates against genre/studio/decade affinities derived from
-  your statuses, ratings, reviews, and favourite genres. It blends same-genre
+  your statuses, ratings, and favourite genres. It blends same-genre
   titles ("Because you liked X"), top titles within your top genres, this
   season's airing shows, and all-time top anime. See
   `/recommendations`, plus rails on Home and Discover.
@@ -30,8 +29,6 @@ Next.js 16 · React 19 · TypeScript · Tailwind v4 · Firebase · Kitsu API.
   air date/time in your timezone. New episodes of watched airing shows raise an
   in-app notification (`src/lib/airing.ts` resolves them from real episode air
   dates).
-- **Reviews** — publish public reviews with spoiler gating and likes.
-
 ## Getting started
 
 ```bash
@@ -54,9 +51,9 @@ catalogue, links and saved records all use it. Discover shows a Live/Offline
 badge so the data source is always transparent.
 
 Kitsu caps every page at 20 records, so anime lists, episodes and search all
-paginate. Episode pages walk forward on demand (the detail page has a "load
-more"), and the airing scheduler jumps straight to the last episode page to
-find the next unaired episode of a long-runner. Adult titles (`R18+`/`RX`) are
+paginate. The series page pages through its episode list, and the airing
+scheduler jumps straight to the last episode page to find the next unaired
+episode of a long-runner. Adult titles (`R18+`/`RX`) are
 filtered out of search and browse.
 
 Artwork goes through `/api/image?url=` (a Pages Function: same-origin bytes with
@@ -96,9 +93,8 @@ Email/password + Google sign-in and Firestore sync are live:
 
 - Firestore mirrors user-authored data best-effort, debounced and local-first:
   the profile, `users/{uid}/library/{animeId}`, `users/{uid}/episodes/{animeId}`
-  (per-episode ratings/notes + the watched set), `users/{uid}/lists/{listId}`,
-  and public `animeReviews/{reviewId}`. On sign-in the device backfills anything
-  it's missing from Firestore; local edits always win.
+  (the watched set), and `users/{uid}/lists/{listId}`. On sign-in the device
+  backfills anything it's missing from Firestore; local edits always win.
 - Analytics initializes lazily in the browser only (`initAnalytics`).
 - Security rules live in `firestore.rules` — deploy with
   `firebase deploy --only firestore:rules`.
@@ -150,8 +146,8 @@ their id from a query param instead of a path segment:
 
 | Page | URL |
 | --- | --- |
-| Anime | `/anime/?a=21-one-piece` |
-| Episode | `/anime/episode/?a=21-one-piece&ep=5` |
+| Anime | `/anime/?a=9000012-one-piece` |
+| Episode | `/anime/episode/?a=9000012-one-piece&ep=5` |
 | List | `/lists/view/?id=<listId>` |
 | Profile | `/u/?u=<username>` |
 

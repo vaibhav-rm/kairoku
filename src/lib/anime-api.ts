@@ -29,7 +29,7 @@ const TTL_LONG = 1000 * 60 * 60 * 24; // 24 hours — near-static metadata
 const CACHE_PREFIX = "kairoku:apicache:v3:";
 const LEGACY_PREFIX = "kairoku:apicache:";
 const MAX_ENTRIES = 150;
-const EPISODES_PER_PAGE = 20;
+export const EPISODES_PER_PAGE = 20;
 // Negative cache: when the provider is down, don't hammer it on every
 // remount/navigation — fail fast to cached/mock data for a minute, then retry.
 const failedAt = new Map<string, number>();
@@ -244,6 +244,16 @@ export async function getAnimeEpisodes(
     return { episodes: mockEpisodes(mock), hasNext: false, lastPage: 1, page };
   }
   return { episodes: [], hasNext: false, lastPage: 1, page };
+}
+
+/** Fetch one episode by number, requesting only the page that contains it. */
+export async function getAnimeEpisode(
+  animeId: number,
+  episode: number
+): Promise<Episode | null> {
+  const page = Math.max(1, Math.ceil(episode / EPISODES_PER_PAGE));
+  const { episodes } = await getAnimeEpisodes(animeId, page);
+  return episodes.find((e) => e.number === episode) ?? null;
 }
 
 /**

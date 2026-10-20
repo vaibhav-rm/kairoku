@@ -3,20 +3,19 @@
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Heart } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/hooks/use-mounted";
 import { animeHref, listHref } from "@/lib/routes";
-import { EmptyState, Skeleton, StarsDisplay } from "@/components/ui";
+import { EmptyState, Skeleton } from "@/components/ui";
 import { SafeImage } from "@/components/safe-image";
 
-const TABS = ["Overview", "Episodes", "Reviews", "Anime", "Lists"] as const;
+const TABS = ["Anime", "Overview", "Episodes", "Lists"] as const;
 
 function Profile() {
   const username = useSearchParams().get("u") || "";
-  const { user, library, episodeData, reviews, lists, toggleLikeReview } = useStore();
+  const { user, library, lists } = useStore();
   const mounted = useMounted();
-  const [tab, setTab] = useState<(typeof TABS)[number]>("Overview");
+  const [tab, setTab] = useState<(typeof TABS)[number]>("Anime");
   if (!mounted) {
     return (
       <div className="space-y-4 pt-4">
@@ -32,17 +31,11 @@ function Profile() {
   const genreCount = new Map<string, number>();
   library.forEach((e) => e.anime?.genres.forEach((g) => genreCount.set(g, (genreCount.get(g) || 0) + 1)));
   const topGenre = [...genreCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
-  const avg = library.length ? library.reduce((s, e) => s + (e.rating || 0), 0) / Math.max(1, library.filter((e) => e.rating > 0).length || 1) : 0;
-  const episodesRated = Object.values(episodeData).reduce(
-    (s, o) => s + Object.values(o).filter((e) => e.rating > 0).length,
-    0
-  );
-  const allRatings = [
-    ...reviews.map((x) => x.rating),
-    ...Object.values(episodeData)
-      .flatMap((o) => Object.values(o).map((e) => e.rating))
-      .filter((r) => r > 0),
-  ];
+  const rated = library.filter((e) => e.rating > 0);
+  const avg = rated.length
+    ? rated.reduce((s, e) => s + e.rating, 0) / rated.length
+    : 0;
+  const allRatings = rated.map((e) => e.rating);
 
   // Public profile fallback for demo usernames
   const display = isOwn && user ? user : {
@@ -74,13 +67,12 @@ function Profile() {
       </div>
 
       {/* Stats */}
-      <div className="mt-6 grid grid-cols-3 gap-3 sm:grid-cols-6">
+      <div className="mt-6 grid grid-cols-3 gap-3 sm:grid-cols-5">
         {[
-          [library.filter((e) => e.status === "completed").length || library.length, "Anime"],
+          [library.length, "Anime"],
           [totalEps, "Episodes"],
           [hours, "Hours"],
-          [reviews.length, "Reviews"],
-          [episodesRated, "Eps rated"],
+          [rated.length, "Rated"],
           [topGenre, "Top genre"],
         ].map(([v, l]) => (
           <div key={l as string} className="rounded-2xl border border-white/10 bg-[#171412] p-4 text-center">
@@ -135,13 +127,28 @@ function Profile() {
       <div className="mt-5">
         {tab === "Overview" && (
           <div className="space-y-3">
-            {[...reviews].slice(0, 4).map((r) => (
-              <p key={r.id} className="rounded-2xl border border-white/[0.07] bg-[#141110] p-4 text-sm text-zinc-300">
-                <span className="font-semibold text-zinc-100">@{display.username}</span> reviewed <span className="text-zinc-100">{r.title}</span>
-                {r.body ? <span className="serif block italic text-zinc-400">“{r.body.slice(0, 140)}”</span> : null}
-              </p>
-            ))}
-            {reviews.length === 0 && <EmptyState title="Quiet here — for now." body="Activity will appear as you track, rate, and review." />}
+            {[...library]
+              .sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""))
+              .slice(0, 5)
+              .map((e) => (
+                <Link
+                  key={e.animeId}
+                  href={animeHref(e.animeId, e.anime?.title)}
+                  className="block rounded-2xl border border-white/[0.07] bg-[#141110] p-4 hover:bg-white/[0.04]"
+                >
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="font-medium text-zinc-100">{e.anime?.title || `Anime ${e.animeId}`}</span>
+                    <span className="shrink-0 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
+                      {e.status.replace("_", " ")}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Ep {e.currentEpisode}{e.totalEpisodes ? ` / ${e.totalEpisodes}` : ""}
+                    {e.rating > 0 ? ` · ${e.rating} ★` : ""}
+                  </p>
+                </Link>
+              ))}
+            {library.length === 0 && <EmptyState title="Quiet here — for now." body="Activity will appear as you track and rate." />}
           </div>
         )}
         {tab === "Episodes" && (
@@ -160,26 +167,18 @@ function Profile() {
             {library.filter((e) => e.currentEpisode > 0).length === 0 && <EmptyState title="No episodes watched yet." body="Tick off an episode and it will show up here." />}
           </div>
         )}
-        {tab === "Reviews" && (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {reviews.map((r) => (
-              <article key={r.id} className="rounded-2xl border border-white/10 bg-[#171412] p-5">
-                <StarsDisplay value={r.rating} />
-                <h3 className="serif mt-2 text-lg text-zinc-50">{r.title}</h3>
-                <p className="mt-1 text-sm text-zinc-400">{r.body.slice(0, 160)}</p>
-                <button onClick={() => toggleLikeReview(r.id)} className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs cursor-pointer max-sm:min-h-10 ${r.liked ? "bg-[#e4572e]/20 text-[#e4572e]" : "bg-white/5 text-zinc-400"}`}>
-                  <Heart size={12} fill={r.liked ? "currentColor" : "none"} /> {r.likes}
-                </button>
-              </article>
-            ))}
-            {reviews.length === 0 && <EmptyState title="No reviews yet." body="Write something about a story you loved." />}
-          </div>
-        )}
         {tab === "Anime" && (
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {library.map((e) => (
-              <Link key={e.animeId} href={animeHref(e.animeId, e.anime?.title)}>
+              <Link key={e.animeId} href={animeHref(e.animeId, e.anime?.title)} className="group">
                 <SafeImage src={e.anime?.coverImage} alt={e.anime?.title} className="aspect-[2/3] w-full rounded-xl border border-white/10 object-cover" loading="lazy" />
+                <p className="mt-2 line-clamp-2 text-xs font-medium leading-snug text-zinc-200 group-hover:text-white">
+                  {e.anime?.title || `Anime ${e.animeId}`}
+                </p>
+                <p className="mt-0.5 text-[11px] text-zinc-500">
+                  {e.status.replace("_", " ")}
+                  {e.rating > 0 ? ` · ${e.rating} ★` : ""}
+                </p>
               </Link>
             ))}
             {library.length === 0 && <div className="col-span-full"><EmptyState title="No anime yet." body="Add something to your Kairoku." /></div>}

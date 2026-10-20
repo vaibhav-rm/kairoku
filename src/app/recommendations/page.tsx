@@ -12,7 +12,7 @@ import { RecommendationCard, RecommendationSkeleton } from "@/components/recomme
 import { EmptyState, Skeleton } from "@/components/ui";
 
 export default function RecommendationsPage() {
-  const { user, ready, library, reviews } = useStore();
+  const { user, ready, library } = useStore();
   const mounted = useMounted();
   const router = useRouter();
   const [bundle, setBundle] = useState<RecommendationBundle | null>(null);
@@ -28,7 +28,6 @@ export default function RecommendationsPage() {
     buildRecommendations(
       {
         library,
-        reviews,
         favoriteGenres: user.favoriteGenres,
       },
       18
@@ -47,7 +46,7 @@ export default function RecommendationsPage() {
     };
     // Rebuild when the user's taste inputs change materially.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, library.length, reviews.length]);
+  }, [user, library.length]);
 
   if (!mounted || !ready || !user) {
     return (
