@@ -92,7 +92,7 @@ export default function OnboardingPage() {
         <div className="mt-8">
           <h1 className="serif text-4xl text-zinc-50">Choose your handle.</h1>
           <p className="mt-2 text-sm text-zinc-400">
-            This is how you&apos;ll show up on Kairoku — reviews, lists and your profile.
+            This is how you&apos;ll show up on Kairoku — ratings, lists and your profile.
           </p>
           <div className="mt-5">
             <label htmlFor="ob-u" className="text-xs text-zinc-400">Username</label>

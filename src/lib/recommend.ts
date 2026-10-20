@@ -1,6 +1,5 @@
 import type {
   Anime,
-  AnimeReview,
   LibraryEntry,
   Recommendation,
   RecommendationRail,
@@ -17,13 +16,12 @@ import {
  * A lightweight, fully client-side taste model.
  *
  * Weights are derived from what the user actually did (statuses, star
- * ratings, reviews, favourite genres) and projected onto genre, studio and
- * decade axes. Recommendation scoring is then a dot product between an
- * anime's attributes and this profile.
+ * ratings, favourite genres) and projected onto genre, studio and decade
+ * axes. Recommendation scoring is then a dot product between an anime's
+ * attributes and this profile.
  */
 export interface TasteInput {
   library: LibraryEntry[];
-  reviews: AnimeReview[];
   favoriteGenres?: string[];
 }
 
@@ -79,23 +77,13 @@ export function buildTaste(input: TasteInput): Taste {
     rate(entry.anime, w);
   }
 
-  for (const review of input.reviews) {
-    seen.add(review.animeId);
-    const a = input.library.find((e) => e.animeId === review.animeId)?.anime;
-    const w = review.rating > 0 ? (review.rating - 3) * 0.8 : 0.2;
-    if (a) for (const g of a.genres) bump(genres, g, w);
-  }
-
   for (const g of input.favoriteGenres || []) bump(genres, g, 1.6);
 
   normalize(genres);
   normalize(studios);
   normalize(decades);
 
-  const signal =
-    seen.size +
-    input.reviews.length +
-    (input.favoriteGenres?.length || 0);
+  const signal = seen.size + (input.favoriteGenres?.length || 0);
 
   return { genres, studios, decades, seen, signal };
 }
@@ -136,7 +124,7 @@ export function scoreAnime(anime: Anime, taste: Taste): Recommendation {
   const dec = decadeOf(anime.year);
   if (dec != null) score += (taste.decades.get(String(dec)) || 0) * 0.35;
 
-  // Quality prior: gently favour well-reviewed titles without letting the
+  // Quality prior: gently favour highly rated titles without letting the
   // provider score bury a perfect genre match.
   if (anime.score != null) score += (anime.score - 7.2) * 0.4;
   if (anime.scoredBy && anime.scoredBy > 150_000) score += 0.1;

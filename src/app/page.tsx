@@ -10,7 +10,7 @@ import { useMounted } from "@/hooks/use-mounted";
 import { MOCK_ANIME } from "@/lib/mock-data";
 import { timeUntil } from "@/lib/utils";
 import { RankCard, ShowtimeRow } from "@/components/cinema";
-import { Button, StarsDisplay } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { SafeImage } from "@/components/safe-image";
 
 const fade = {
@@ -257,34 +257,21 @@ export default function Landing() {
         </div>
       </Band>
 
-      {/* ————— 05 REVIEWS ————— */}
-      <Band no="05" jp="評論 · Reviews">
+      {/* ————— 05 RATINGS ————— */}
+      <Band no="05" jp="評価 · Ratings">
         <motion.div {...fade} className="mt-5 flex items-end justify-between gap-4">
           <h2 className="display serif max-w-xl text-4xl leading-[1.05] text-zinc-50 sm:text-6xl">
-            Written like <em>letters.</em>
+            Every story, <em>rated.</em>
           </h2>
           <Link href="/discover" className="hidden shrink-0 items-center gap-1 text-sm text-zinc-400 hover:text-white sm:inline-flex">
             Discover <ArrowUpRight size={15} />
           </Link>
         </motion.div>
-        <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
-          {[
-            { t: "A beautiful ending to an unforgettable journey", b: "Frieren understands something most anime never touch — that grief is just love with nowhere to go. I cried twice.", u: "vaibhav", r: 5 },
-            { t: "The pacing finally clicked", b: "Chainsaw Man episode 7 is where the chaos finds its rhythm. Loud, ugly, perfect.", u: "momo", r: 4.5 },
-            { t: "Vinland asks the hard question", b: "Can a story about revenge become a story about peace? Yes — and it is devastating.", u: "kenji", r: 5 },
-          ].map((r, i) => (
-            <motion.article key={r.t} {...fade} transition={{ delay: i * 0.08 }} className="card-lift flex flex-col rounded-2xl border border-white/10 bg-[#141110] p-5 sm:p-7">
-              <StarsDisplay value={r.r} />
-              <h3 className="serif mt-4 text-xl leading-snug text-zinc-50">{r.t}</h3>
-              <p className="mt-3 line-clamp-3 flex-1 text-sm leading-relaxed text-zinc-400">{r.b}</p>
-              <footer className="mt-5 flex items-center gap-2 border-t border-white/[0.07] pt-4 text-xs text-zinc-500">
-                <span className="grid size-6 place-items-center rounded-full bg-white/10 font-bold text-zinc-300">{r.u[0].toUpperCase()}</span>
-                @{r.u} · October 2026
-              </footer>
-            </motion.article>
-          ))}
-        </div>
-        <div className="mt-16">
+        <motion.p {...fade} className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-400">
+          One half-star rating per series. Mark a story complete and Kairoku asks
+          how it felt — no episode-by-episode homework.
+        </motion.p>
+        <div className="mt-12">
           <h3 className="flex items-center gap-3 text-sm font-bold uppercase tracking-[0.25em] text-zinc-400">
             Top 10 this week <span className="rule w-16" aria-hidden />
           </h3>

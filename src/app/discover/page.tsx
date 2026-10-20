@@ -31,7 +31,7 @@ function Rail({ title, sub, items }: { title: string; sub: string; items: Anime[
 export default function DiscoverPage() {
   const [data, setData] = useState<{ trending: Anime[]; airing: Anime[]; top: Anime[]; live: ProviderStatus } | null>(null);
   const [bundle, setBundle] = useState<RecommendationBundle | null>(null);
-  const { user, ready, library, reviews } = useStore();
+  const { user, ready, library } = useStore();
   const mounted = useMounted();
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function DiscoverPage() {
     if (!mounted || !ready || !user) return;
     let alive = true;
     buildRecommendations(
-      { library, reviews, favoriteGenres: user.favoriteGenres },
+      { library, favoriteGenres: user.favoriteGenres },
       10
     )
       .then((b) => {
@@ -53,7 +53,7 @@ export default function DiscoverPage() {
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted, ready, user, library.length, reviews.length]);
+  }, [mounted, ready, user, library.length]);
 
   if (!data) {
     return (

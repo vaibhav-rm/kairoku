@@ -73,31 +73,6 @@ export interface LibraryEntry {
   completedAt?: string;
 }
 
-/**
- * A user's record for a single episode. The note is optional and always kept
- * alongside the rating so the two travel together (and to Firestore).
- */
-export interface EpisodeEntry {
-  /** 0-5 step 0.5, 0 = unrated. */
-  rating: number;
-  note?: string;
-  updatedAt: string;
-}
-
-export interface AnimeReview {
-  id: string;
-  animeId: number;
-  animeTitle: string;
-  coverImage?: string;
-  rating: number;
-  title: string;
-  body: string;
-  spoilers: boolean;
-  likes: number;
-  liked?: boolean;
-  createdAt: string;
-}
-
 export interface CustomList {
   id: string;
   name: string;
@@ -129,7 +104,7 @@ export interface RecommendationRail {
 
 export interface KNotification {
   id: string;
-  type: "episode" | "like" | "follow" | "review";
+  type: "episode" | "like" | "follow";
   title: string;
   body: string;
   read: boolean;

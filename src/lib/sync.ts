@@ -1,5 +1,5 @@
 import { db, isFirebaseConfigured } from "@/lib/firebase";
-import type { AnimeReview, AppUser, CustomList, EpisodeEntry, LibraryEntry } from "@/types";
+import type { AppUser, CustomList, LibraryEntry } from "@/types";
 
 /**
  * Best-effort Firestore sync for a signed-in user's own data.
@@ -11,13 +11,11 @@ import type { AnimeReview, AppUser, CustomList, EpisodeEntry, LibraryEntry } fro
  * no-ops — the app keeps working in local mode.
  */
 
-/** One document per anime, holding that anime's episode ratings/notes + watched set. */
+/** One document per anime, holding that anime's watched set. */
 export interface EpisodeDoc {
   animeId: number;
   /** Episode numbers ticked as watched. */
   watched: number[];
-  /** episode number -> { rating, note } */
-  entries: Record<string, EpisodeEntry>;
   updatedAt: string;
 }
 
@@ -93,25 +91,11 @@ export async function pushList(uid: string, list: CustomList): Promise<void> {
   } catch {}
 }
 
-export async function pushReview(uid: string, review: AnimeReview): Promise<void> {
-  const conn = await connect();
-  if (!conn) return;
-  const { fs, database } = conn;
-  try {
-    await fs.setDoc(
-      fs.doc(database, "animeReviews", review.id),
-      { ...review, userId: uid, updatedAt: new Date().toISOString() },
-      { merge: true }
-    );
-  } catch {}
-}
-
 export interface PulledData {
   profile: AppUser | null;
   library: LibraryEntry[];
   episodes: EpisodeDoc[];
   lists: CustomList[];
-  reviews: AnimeReview[];
 }
 
 /** Read back everything the user owns. Returns null when Firebase is off. */
@@ -120,14 +104,11 @@ export async function pullUserData(uid: string): Promise<PulledData | null> {
   if (!conn) return null;
   const { fs, database } = conn;
   try {
-    const [profile, library, episodes, lists, reviews] = await Promise.all([
+    const [profile, library, episodes, lists] = await Promise.all([
       fs.getDoc(fs.doc(database, "users", uid)),
       fs.getDocs(fs.collection(database, "users", uid, "library")),
       fs.getDocs(fs.collection(database, "users", uid, "episodes")),
       fs.getDocs(fs.collection(database, "users", uid, "lists")),
-      fs.getDocs(
-        fs.query(fs.collection(database, "animeReviews"), fs.where("userId", "==", uid))
-      ),
     ]);
     return {
       profile: profile.exists() ? (profile.data() as AppUser) : null,
@@ -136,7 +117,6 @@ export async function pullUserData(uid: string): Promise<PulledData | null> {
         .filter((e) => e && typeof e.animeId === "number"),
       episodes: episodes.docs.map((d) => d.data() as EpisodeDoc),
       lists: lists.docs.map((d) => d.data() as CustomList),
-      reviews: reviews.docs.map((d) => d.data() as AnimeReview),
     };
   } catch {
     return null;

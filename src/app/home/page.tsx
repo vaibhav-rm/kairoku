@@ -16,7 +16,7 @@ import { buildRecommendations, type RecommendationBundle } from "@/lib/recommend
 import { RecommendationCard } from "@/components/recommend";
 
 export default function HomePage() {
-  const { user, ready, library, reviews, lists } = useStore();
+  const { user, ready, library, lists } = useStore();
   const mounted = useMounted();
   const router = useRouter();
   const [recs, setRecs] = useState<Anime[]>([]);
@@ -30,7 +30,7 @@ export default function HomePage() {
     if (!user) return;
     let alive = true;
     buildRecommendations(
-      { library, reviews, favoriteGenres: user.favoriteGenres },
+      { library, favoriteGenres: user.favoriteGenres },
       10
     )
       .then((b) => {
@@ -43,7 +43,7 @@ export default function HomePage() {
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, library.length, reviews.length]);
+  }, [user, library.length]);
 
   if (!mounted || !ready || !user) {
     return (
@@ -175,7 +175,7 @@ export default function HomePage() {
           <div className="sunset-glow rounded-2xl border border-white/10 bg-[#141110] p-6">
             <h3 className="text-[11px] font-bold uppercase tracking-[0.28em] text-zinc-500">Tonight&apos;s program</h3>
             <dl className="mt-4 space-y-3">
-              {[["On the reel", watching.length], ["Episodes watched", totalEps], ["Reviews written", reviews.length], ["Lists made", lists.length]].map(([k, v]) => (
+              {[["On the reel", watching.length], ["Episodes watched", totalEps], ["Titles rated", library.filter((e) => e.rating > 0).length], ["Lists made", lists.length]].map(([k, v]) => (
                 <div key={k as string} className="flex items-baseline justify-between border-b border-white/[0.06] pb-3 last:border-0 last:pb-0">
                   <dt className="text-sm text-zinc-500">{k}</dt>
                   <dd className="serif text-3xl tabular-nums text-zinc-50">{v}</dd>

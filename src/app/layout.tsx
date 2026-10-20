@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     "Track the anime you watch, write down what you felt, and never miss the next episode.",
   openGraph: {
     title: "Kairoku — Remember every story",
-    description: "Your personal anime journal. Track, rate, review, remember.",
+    description: "Your personal anime journal. Track, rate, remember.",
     type: "website",
   },
 };
