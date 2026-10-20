@@ -38,6 +38,35 @@ if (isFirebaseConfigured && getApps().length === 0) {
 
 export { app, auth, db };
 
+/** Turn Firebase Auth error codes into something a person can act on. */
+export function authErrorMessage(error: unknown): string {
+  const code =
+    typeof error === "object" && error !== null && "code" in error
+      ? String((error as { code?: unknown }).code)
+      : "";
+
+  switch (code) {
+    case "auth/unauthorized-domain":
+      return "Google sign-in is not enabled for this domain yet. Add it under Firebase Console → Authentication → Settings → Authorized domains.";
+    case "auth/popup-blocked":
+      return "Your browser blocked the sign-in window. Allow pop-ups for this site and try again.";
+    case "auth/popup-closed-by-user":
+      return "The sign-in window was closed before finishing. Try again.";
+    case "auth/cancelled-popup-request":
+      return "Another sign-in window is already open. Finish that one first.";
+    case "auth/operation-not-allowed":
+      return "Google sign-in is disabled for this Firebase project. Enable it under Authentication → Sign-in method.";
+    case "auth/account-exists-with-different-credential":
+      return "An account with this email already exists using a different sign-in method.";
+    case "auth/network-request-failed":
+      return "Network error while contacting Google. Check your connection and try again.";
+    default:
+      return error instanceof Error && error.message
+        ? error.message
+        : "Could not sign you in. Please try again.";
+  }
+}
+
 // Analytics is browser-only and optional — never block rendering on it.
 export async function initAnalytics(): Promise<void> {
   if (typeof window === "undefined" || !app || !config.measurementId) return;

@@ -20,7 +20,7 @@ import type {
   LibraryEntry,
   LibraryStatus,
 } from "@/types";
-import { auth, db, initAnalytics, isFirebaseConfigured } from "@/lib/firebase";
+import { auth, db, initAnalytics, isFirebaseConfigured, authErrorMessage } from "@/lib/firebase";
 import { getAiringInfo } from "@/lib/airing";
 import {
   pullUserData,
@@ -484,7 +484,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (isFirebaseConfigured && auth) {
       const { GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } =
         await import("firebase/auth");
-      const cred = await signInWithPopup(auth, new GoogleAuthProvider());
+      const cred = await signInWithPopup(auth, new GoogleAuthProvider()).catch((e) => {
+        throw new Error(authErrorMessage(e));
+      });
       const isNew = getAdditionalUserInfo(cred)?.isNewUser ?? false;
       if (isNew) {
         const base = deriveUsername(cred.user.email);
