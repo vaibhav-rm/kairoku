@@ -210,18 +210,18 @@ export async function buildRecommendations(
 
   const genresWanted = topGenres(taste, 3);
 
-  // Candidate pool — fetched sequentially so the throttle keeps us under
-  // Jikan's 3 req/s ceiling.
+  // Candidate pool — fetched sequentially so a render never fires a burst of
+  // provider requests.
   const pool: Anime[] = [];
   const top1 = await getTopAnime(1);
   pool.push(...top1);
   const season = await getSeasonAnime();
   pool.push(...season);
 
-  const genreIndex = genresWanted.length ? await getGenreIndex() : new Map<string, number>();
+  const genreIndex = genresWanted.length ? await getGenreIndex() : new Map<string, string>();
   for (const g of genresWanted) {
-    const id = genreIndex.get(g.toLowerCase());
-    if (id) pool.push(...(await getAnimeByGenre(id, 18)));
+    const slug = genreIndex.get(g.toLowerCase());
+    if (slug) pool.push(...(await getAnimeByGenre(slug, 18)));
   }
 
   // "Because you liked X" rails from MAL's similarity graph.
@@ -231,8 +231,8 @@ export async function buildRecommendations(
     let similar = await getAnimeRecommendations(anime.malId, 12);
     // Fallback: same-genre, highest rated.
     if (!similar.length && anime.genres[0]) {
-      const id = genreIndex.get(anime.genres[0].toLowerCase());
-      if (id) similar = await getAnimeByGenre(id, 12);
+      const slug = genreIndex.get(anime.genres[0].toLowerCase());
+      if (slug) similar = await getAnimeByGenre(slug, 12);
     }
     similar = dedupe(similar)
       .filter((a) => a.malId !== anime.malId && !taste.seen.has(a.malId))

@@ -8,7 +8,7 @@ export type LibraryStatus =
 export interface Anime {
   malId: number;
   /** Which provider this record came from (IDs are namespaced, see kitsu.ts). */
-  source?: "jikan" | "kitsu" | "mock";
+  source?: "kitsu" | "mock";
   title: string;
   titleJapanese?: string;
   titleEnglish?: string;

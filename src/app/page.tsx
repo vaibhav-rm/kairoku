@@ -318,7 +318,7 @@ export default function Landing() {
         <p className="flex items-center justify-center gap-2 text-sm font-bold text-zinc-300">
           <span className="hanko grid size-6 place-items-center rounded-md text-[10px]">回</span> Kairoku
         </p>
-        <p className="mt-2 text-xs tracking-wide text-zinc-600">回録 — Remember every story · Data by Jikan / MyAnimeList</p>
+        <p className="mt-2 text-xs tracking-wide text-zinc-600">回録 — Remember every story · Data by Kitsu</p>
       </footer>
     </div>
   );

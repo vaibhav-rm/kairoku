@@ -15,7 +15,7 @@ function airTime(ep: Episode): number | null {
 /**
  * Resolve the next unaired and latest aired episode for a title.
  *
- * Jikan paginates episodes oldest-first, so the interesting end of a long
+ * Kitsu paginates episodes oldest-first, so the interesting end of a long
  * (still-airing) series lives on the last page — we jump straight there
  * instead of walking every page.
  */

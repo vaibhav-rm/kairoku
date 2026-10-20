@@ -40,9 +40,17 @@ export default function OnboardingPage() {
   }, [user]);
 
   useEffect(() => {
-    if (!q.trim()) return;
-    const t = setTimeout(async () => setResults(await searchAnime(q)), 350);
-    return () => clearTimeout(t);
+    const query = q.trim();
+    if (!query) return;
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const found = await searchAnime(query);
+      if (!cancelled) setResults(found); // ignore answers for older queries
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [q]);
 
   if (!mounted || !ready || !user) return null;
@@ -121,7 +129,17 @@ export default function OnboardingPage() {
         <div className="mt-8">
           <h1 className="serif text-4xl text-zinc-50">What are you watching?</h1>
           <p className="mt-2 text-sm text-zinc-400">Search and pick as many as you like.</p>
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search anime…" className="mt-5" aria-label="Search anime to add" />
+          <Input
+            value={q}
+            onChange={(e) => {
+              const value = e.target.value;
+              setQ(value);
+              if (!value.trim()) setResults([]);
+            }}
+            placeholder="Search anime…"
+            className="mt-5"
+            aria-label="Search anime to add"
+          />
           <div className="mt-4 space-y-2">
             {results.map((a) => {
               const on = picked.some((x) => x.malId === a.malId);

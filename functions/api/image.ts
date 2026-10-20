@@ -7,7 +7,7 @@
 // Next.js route handler.
 
 // Hosts we are willing to proxy artwork for. An open image proxy is an
-// abuse vector, so this stays a tight allowlist (Jikan/MAL CDN only).
+// abuse vector, so this stays a tight allowlist (Kitsu/MAL CDNs only).
 const ALLOWED = new Set([
   "cdn.myanimelist.net",
   "media.kitsu.io",

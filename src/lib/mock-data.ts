@@ -1,7 +1,7 @@
 import type { Anime, Episode } from "@/types";
 
-// Cinematic seed data — used as dev-mode fallback + when Jikan rate-limits.
-// Images via picsum-free CDN? Use Jikan CDN image URLs (stable, hotlinkable).
+// Cinematic seed data — used as dev-mode fallback + when Kitsu is unreachable.
+// Images point at the MAL CDN (stable, hotlinkable through /api/image).
 export const MOCK_ANIME: Anime[] = [
   {
     malId: 52991,
